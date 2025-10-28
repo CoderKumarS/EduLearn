@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'users',
     'courses',
+    'django_extensions',
 ]
 
 AUTH_USER_MODEL = 'users.CustomUser'

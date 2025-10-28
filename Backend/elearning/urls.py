@@ -19,10 +19,20 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from courses.views import CourseViewSet, EnrollmentViewSet
 from users import views as user_views
+from courses.views import (
+    QuizViewSet, QuestionViewSet, OptionViewSet,
+    StudentAnswerViewSet, ProgressViewSet
+)
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet, basename='course')
 router.register(r'enrollments', EnrollmentViewSet, basename='enrollment')
+
+router.register(r'quizzes', QuizViewSet, basename='quiz')
+router.register(r'questions', QuestionViewSet, basename='question')
+router.register(r'options', OptionViewSet, basename='option')
+router.register(r'answers', StudentAnswerViewSet, basename='answers')
+router.register(r'progress', ProgressViewSet, basename='progress')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
