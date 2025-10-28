@@ -1,0 +1,12 @@
+export { SplashScreen } from './SplashScreen';
+export { LoginScreen } from './LoginScreen';
+export { RegisterScreen } from './RegisterScreen';
+export { HomeScreen } from './HomeScreen';
+export { CoursesScreen } from './CoursesScreen';
+export { CourseDetailScreen } from './CourseDetailScreen';
+export { StudentDashboard } from './StudentDashboard';
+export { InstructorDashboard } from './InstructorDashboard';
+export { QuizScreen } from './QuizScreen';
+export { ProfileScreen } from './ProfileScreen';
+export { CreateCourseScreen } from './CreateCourseScreen';
+export { DashboardScreen } from './DashboardScreen';
