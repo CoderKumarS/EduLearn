@@ -85,6 +85,72 @@ class CourseService {
     const response = await api.get(`/progress/?student=${studentId}`);
     return response.data;
   }
+
+  // Chapter endpoints
+  async getCourseChapters(courseId: string) {
+    try {
+      const response = await api.get(`/courses/${courseId}/chapters/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching course chapters:', error);
+      return [];
+    }
+  }
+
+  async createChapter(courseId: string, chapterData: any) {
+    const response = await api.post(`/courses/${courseId}/chapters/`, chapterData);
+    return response.data;
+  }
+
+  async updateChapter(courseId: string, chapterId: string, chapterData: any) {
+    const response = await api.put(`/courses/${courseId}/chapters/${chapterId}/`, chapterData);
+    return response.data;
+  }
+
+  async deleteChapter(courseId: string, chapterId: string): Promise<void> {
+    await api.delete(`/courses/${courseId}/chapters/${chapterId}/`);
+  }
+
+  // Course search and filtering
+  async searchCourses(query: string, category?: string): Promise<Course[]> {
+    try {
+      let url = `/courses/search/?q=${encodeURIComponent(query)}`;
+      if (category) {
+        url += `&category=${encodeURIComponent(category)}`;
+      }
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching courses:', error);
+      return [];
+    }
+  }
+
+  async getCoursesByCategory(category: string): Promise<Course[]> {
+    try {
+      const response = await api.get(`/courses/?category=${encodeURIComponent(category)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching courses by category:', error);
+      return [];
+    }
+  }
+
+  // Course ratings and reviews
+  async rateCourse(courseId: string, rating: number, review?: string) {
+    const response = await api.post(`/courses/${courseId}/rate/`, { rating, review });
+    return response.data;
+  }
+
+  async getCourseReviews(courseId: string) {
+    try {
+      const response = await api.get(`/courses/${courseId}/reviews/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching course reviews:', error);
+      return [];
+    }
+  }
 }
 
 export const courseService = new CourseService();

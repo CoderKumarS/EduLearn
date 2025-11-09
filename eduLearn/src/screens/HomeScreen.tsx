@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { ThemedView, ThemedText, Button } from '../components';
-import { courseService } from '../services/courseService';
-import { Course, Enrollment } from '../types/course';
-import { handleApiError } from '../utils/errorHandler';
+import { ThemedText } from '../components';
+import { NavigationCard } from '../components/NavigationCard';
 
 interface HomeScreenProps {
   onNavigateToCourses: () => void;
@@ -14,186 +14,122 @@ interface HomeScreenProps {
   onNavigateToCourse: (courseId: string) => void;
   onNavigateToStudentDashboard?: () => void;
   onNavigateToInstructorDashboard?: () => void;
+  onNavigateToAdminDashboard?: () => void;
+  onNavigateToAITutor?: () => void;
+  onNavigateToAboutUs?: () => void;
+  onNavigateToContactUs?: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNavigateToCourses,
   onNavigateToProfile,
-  onNavigateToCourse,
   onNavigateToStudentDashboard,
   onNavigateToInstructorDashboard,
+  onNavigateToAdminDashboard,
+  onNavigateToAITutor,
+  onNavigateToAboutUs,
+  onNavigateToContactUs,
 }) => {
-  const { authState, logout } = useAuth();
+  const { authState } = useAuth();
   const { theme } = useTheme();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadData = async () => {
-    try {
-      const [coursesData, enrollmentsData] = await Promise.all([
-        courseService.getCourses(),
-        courseService.getEnrollments(),
-      ]);
-      setCourses(coursesData);
-      setEnrollments(enrollmentsData);
-    } catch (error) {
-      const apiError = handleApiError(error);
-      console.warn('Failed to load data:', apiError.message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
-
-  const handleLogout = async () => {
-    await logout();
-  };
-
-  const enrolledCourses = enrollments.map(enrollment => enrollment.course);
-  const availableCourses = courses.filter(
-    course => !enrolledCourses.some(enrolled => enrolled.id === course.id)
-  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <ThemedView style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <ThemedText style={styles.greeting}>
-                Welcome back,
-              </ThemedText>
-              <ThemedText style={styles.username}>
-                {authState.user?.username}!
-              </ThemedText>
-            </View>
-            <TouchableOpacity
-              style={[styles.profileButton, { backgroundColor: theme.colors.primary }]}
-              onPress={onNavigateToProfile}
-            >
-              <ThemedText style={styles.profileButtonText}>
-                {authState.user?.username.charAt(0).toUpperCase()}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Welcome Banner */}
+        <LinearGradient
+          colors={[theme.colors.primary, theme.colors.primaryDark]}
+          style={[styles.banner, { borderRadius: theme.borderRadius.lg }]}
+        >
+          <Ionicons name="school" size={48} color="#FFFFFF" />
+          <ThemedText style={[styles.bannerTitle, theme.typography.h1]}>
+            Welcome to AI LearnHub!
+          </ThemedText>
+          <ThemedText style={[styles.bannerSubtitle, theme.typography.body]}>
+            Your personalized journey to knowledge and skill mastery begins here.
+          </ThemedText>
+        </LinearGradient>
 
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <Button
-              title="Browse Courses"
-              onPress={onNavigateToCourses}
-              style={styles.actionButton}
+        {/* Your Dashboards Section */}
+        <View style={[styles.section, { marginTop: theme.spacing.lg }]}>
+          <ThemedText style={[styles.sectionTitle, theme.typography.h2, { color: theme.colors.text }]}>
+            Your Dashboards
+          </ThemedText>
+
+          <NavigationCard
+            icon={<Ionicons name="person" size={24} color="#FFFFFF" />}
+            title="Student Dashboard"
+            description="Access enrolled courses, track progress, and interact with the AI Tutor."
+            onPress={onNavigateToStudentDashboard || (() => { })}
+            iconBackgroundColor={theme.colors.primary}
+          />
+
+          {authState.user?.role === 'instructor' && (
+            <NavigationCard
+              icon={<Ionicons name="book" size={24} color="#FFFFFF" />}
+              title="Instructor Dashboard"
+              description="Manage your created courses, view student statistics, and facilitate learning."
+              onPress={onNavigateToInstructorDashboard || (() => { })}
+              iconBackgroundColor="#9333EA"
             />
-            {authState.user?.role === 'student' && (
-              <Button
-                title="Student Dashboard"
-                variant="outline"
-                onPress={onNavigateToStudentDashboard}
-                style={styles.actionButton}
-              />
-            )}
-            {authState.user?.role === 'instructor' && (
-              <Button
-                title="Instructor Dashboard"
-                variant="outline"
-                onPress={onNavigateToInstructorDashboard}
-                style={styles.actionButton}
-              />
-            )}
-          </View>
-
-          {/* Enrolled Courses */}
-          {enrolledCourses.length > 0 && (
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>My Courses</ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.courseList}>
-                  {enrolledCourses.map((course) => (
-                    <TouchableOpacity
-                      key={course.id}
-                      style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-                      onPress={() => onNavigateToCourse(course.id)}
-                    >
-                      <ThemedText style={styles.courseTitle} numberOfLines={2}>
-                        {course.title}
-                      </ThemedText>
-                      <ThemedText variant="secondary" style={styles.courseInstructor}>
-                        by {course.instructor.username}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
           )}
 
-          {/* Available Courses */}
-          {availableCourses.length > 0 && (
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Discover New Courses</ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.courseList}>
-                  {availableCourses.slice(0, 5).map((course) => (
-                    <TouchableOpacity
-                      key={course.id}
-                      style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-                      onPress={() => onNavigateToCourse(course.id)}
-                    >
-                      <ThemedText style={styles.courseTitle} numberOfLines={2}>
-                        {course.title}
-                      </ThemedText>
-                      <ThemedText variant="secondary" style={styles.courseInstructor}>
-                        by {course.instructor.username}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Stats */}
-          <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
-              <ThemedText style={styles.statNumber}>{enrolledCourses.length}</ThemedText>
-              <ThemedText variant="secondary" style={styles.statLabel}>
-                Enrolled Courses
-              </ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
-              <ThemedText style={styles.statNumber}>{courses.length}</ThemedText>
-              <ThemedText variant="secondary" style={styles.statLabel}>
-                Total Courses
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* Logout Button */}
-          <View style={styles.logoutContainer}>
-            <Button
-              title="Logout"
-              variant="outline"
-              onPress={handleLogout}
+          {authState.user?.role === 'admin' && (
+            <NavigationCard
+              icon={<Ionicons name="settings" size={24} color="#FFFFFF" />}
+              title="Admin Dashboard"
+              description="Oversee user management, monitor course statistics, and maintain system health."
+              onPress={onNavigateToAdminDashboard || (() => { })}
+              iconBackgroundColor="#DC2626"
             />
-          </View>
-        </ThemedView>
+          )}
+        </View>
+
+        {/* Explore & Learn Section */}
+        <View style={[styles.section, { marginTop: theme.spacing.xl }]}>
+          <ThemedText style={[styles.sectionTitle, theme.typography.h2, { color: theme.colors.text }]}>
+            Explore & Learn
+          </ThemedText>
+
+          <NavigationCard
+            icon={<Ionicons name="search" size={24} color="#FFFFFF" />}
+            title="Course Explore"
+            description="Discover a wide array of courses using filters and categories."
+            onPress={onNavigateToCourses}
+            iconBackgroundColor="#0891B2"
+          />
+
+          <NavigationCard
+            icon={<Ionicons name="chatbubbles" size={24} color="#FFFFFF" />}
+            title="AI Tutor"
+            description="Get instant, AI-powered assistance for your learning queries and assignments."
+            onPress={onNavigateToAITutor || (() => { })}
+            iconBackgroundColor="#059669"
+          />
+        </View>
+
+        {/* App Information Section */}
+        <View style={[styles.section, { marginTop: theme.spacing.xl, marginBottom: theme.spacing.xxl }]}>
+          <ThemedText style={[styles.sectionTitle, theme.typography.h2, { color: theme.colors.text }]}>
+            App Information
+          </ThemedText>
+
+          <NavigationCard
+            icon={<Ionicons name="information-circle" size={24} color="#FFFFFF" />}
+            title="About AI LearnHub"
+            description="Learn about our mission, vision, and the dedicated team behind this platform."
+            onPress={onNavigateToAboutUs || (() => { })}
+            iconBackgroundColor="#7C3AED"
+          />
+
+          <NavigationCard
+            icon={<Ionicons name="mail" size={24} color="#FFFFFF" />}
+            title="Contact Us"
+            description="Reach out for support, feedback, or partnership inquiries."
+            onPress={onNavigateToContactUs || (() => { })}
+            iconBackgroundColor="#EA580C"
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -206,106 +142,30 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  banner: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 32,
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  greeting: {
-    fontSize: 16,
-  },
-  username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  profileButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  profileButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  bannerTitle: {
     color: '#FFFFFF',
+    textAlign: 'center',
+    marginTop: 16,
+    fontWeight: '700',
   },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  actionButton: {
-    flex: 1,
+  bannerSubtitle: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.9,
   },
   section: {
-    marginBottom: 32,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 16,
-  },
-  courseList: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  courseCard: {
-    width: 200,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  courseTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  courseInstructor: {
-    fontSize: 14,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 32,
-  },
-  statCard: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  logoutContainer: {
-    paddingTop: 16,
+    fontWeight: '700',
   },
 });

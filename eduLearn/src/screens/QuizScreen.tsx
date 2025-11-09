@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  StyleSheet, 
+import {
+  View,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
-  Alert 
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemedView, ThemedText, Button } from '../components';
+import { QuizOption } from '../components/QuizOption';
 import { courseService } from '../services/courseService';
 import { Quiz, Question, Option, QuizSubmission } from '../types/course';
 import { handleApiError } from '../utils/errorHandler';
+import { Ionicons } from '@expo/vector-icons';
 
 interface QuizScreenProps {
   quizId: string;
@@ -28,10 +30,14 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [quizStarted, setQuizStarted] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [quizResults, setQuizResults] = useState<any>(null);
 
   useEffect(() => {
     loadQuizData();
@@ -55,7 +61,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
         courseService.getQuiz(quizId),
         courseService.getQuestions(),
       ]);
-      
+
       setQuiz(quizData);
       // Filter questions for this quiz
       const quizQuestions = questionsData.filter(q => q.quiz === quizId);
@@ -114,17 +120,43 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
       };
 
       const result = await courseService.submitQuiz(submission);
-      
-      Alert.alert(
-        'Quiz Submitted!',
-        `Your score: ${result.score}%\n${result.message}`,
-        [{ text: 'OK', onPress: onNavigateBack }]
-      );
+      setQuizResults(result);
+      setShowResults(true);
     } catch (error) {
       const apiError = handleApiError(error);
       Alert.alert('Error', apiError.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // Last question, submit quiz
+      handleSubmitQuiz();
+    }
+  };
+
+  const handleFlagQuestion = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (currentQuestion) {
+      setFlaggedQuestions(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(currentQuestion.id)) {
+          newSet.delete(currentQuestion.id);
+        } else {
+          newSet.add(currentQuestion.id);
+        }
+        return newSet;
+      });
     }
   };
 
@@ -166,7 +198,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
         <ThemedView style={styles.content}>
           <View style={styles.quizIntro}>
             <ThemedText style={styles.quizTitle}>{quiz.title}</ThemedText>
-            
+
             <View style={[styles.quizInfo, { backgroundColor: theme.colors.card }]}>
               <ThemedText style={styles.infoTitle}>Quiz Information</ThemedText>
               <ThemedText style={styles.infoItem}>
@@ -215,6 +247,58 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
     );
   }
 
+  if (showResults && quizResults) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ThemedView style={styles.content}>
+          <View style={styles.resultsContainer}>
+            <View style={[styles.resultsHeader, { backgroundColor: theme.colors.card }]}>
+              <Ionicons
+                name={quizResults.score >= 70 ? "checkmark-circle" : "close-circle"}
+                size={80}
+                color={quizResults.score >= 70 ? theme.colors.success : theme.colors.error}
+              />
+              <ThemedText style={styles.resultsTitle}>Quiz Completed!</ThemedText>
+              <ThemedText style={styles.resultsScore}>
+                Your Score: {quizResults.score}%
+              </ThemedText>
+              <ThemedText style={styles.resultsMessage}>
+                {quizResults.message}
+              </ThemedText>
+            </View>
+
+            <View style={[styles.resultsStats, { backgroundColor: theme.colors.card }]}>
+              <View style={styles.statItem}>
+                <ThemedText style={styles.statLabel}>Total Questions</ThemedText>
+                <ThemedText style={styles.statValue}>{questions.length}</ThemedText>
+              </View>
+              <View style={styles.statItem}>
+                <ThemedText style={styles.statLabel}>Correct Answers</ThemedText>
+                <ThemedText style={[styles.statValue, { color: theme.colors.success }]}>
+                  {Math.round((quizResults.score / 100) * questions.length)}
+                </ThemedText>
+              </View>
+              <View style={styles.statItem}>
+                <ThemedText style={styles.statLabel}>Incorrect Answers</ThemedText>
+                <ThemedText style={[styles.statValue, { color: theme.colors.error }]}>
+                  {questions.length - Math.round((quizResults.score / 100) * questions.length)}
+                </ThemedText>
+              </View>
+            </View>
+
+            <View style={styles.resultsActions}>
+              <Button
+                title="Back to Course"
+                onPress={onNavigateBack}
+                style={styles.resultsButton}
+              />
+            </View>
+          </View>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Quiz Header */}
@@ -222,11 +306,17 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
         <View style={styles.headerInfo}>
           <ThemedText style={styles.headerTitle}>{quiz.title}</ThemedText>
           <ThemedText variant="secondary" style={styles.headerSubtitle}>
-            Question {Object.keys(selectedAnswers).length} of {questions.length}
+            Question {currentQuestionIndex + 1} / {questions.length}
           </ThemedText>
         </View>
-        
+
         <View style={styles.timerContainer}>
+          <Ionicons
+            name="time-outline"
+            size={20}
+            color={timeLeft < 300 ? theme.colors.error : theme.colors.text}
+            style={styles.timerIcon}
+          />
           <ThemedText style={[
             styles.timer,
             { color: timeLeft < 300 ? theme.colors.error : theme.colors.text }
@@ -243,67 +333,90 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
             styles.progressBar,
             {
               backgroundColor: theme.colors.primary,
-              width: `${getProgressPercentage()}%`,
+              width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
             }
           ]}
         />
       </View>
 
-      {/* Questions */}
+      {/* Current Question */}
       <ScrollView style={styles.scrollView}>
         <ThemedView style={styles.questionsContainer}>
-          {questions.map((question, index) => (
-            <View
-              key={question.id}
-              style={[styles.questionCard, { backgroundColor: theme.colors.card }]}
-            >
-              <ThemedText style={styles.questionNumber}>
-                Question {index + 1}
-              </ThemedText>
+          {questions[currentQuestionIndex] && (
+            <View style={styles.questionCard}>
               <ThemedText style={styles.questionText}>
-                {question.text}
+                {questions[currentQuestionIndex].text}
               </ThemedText>
 
               <View style={styles.optionsContainer}>
-                {question.options.map((option) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.optionButton,
-                      {
-                        backgroundColor: selectedAnswers[question.id] === option.id
-                          ? theme.colors.primary
-                          : theme.colors.surface,
-                        borderColor: theme.colors.border,
-                      }
-                    ]}
-                    onPress={() => handleAnswerSelect(question.id, option.id)}
-                  >
-                    <ThemedText style={[
-                      styles.optionText,
-                      {
-                        color: selectedAnswers[question.id] === option.id
-                          ? '#FFFFFF'
-                          : theme.colors.text
-                      }
-                    ]}>
-                      {option.text}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
+                {questions[currentQuestionIndex].options.map((option, index) => {
+                  const labels: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
+                  return (
+                    <QuizOption
+                      key={option.id}
+                      label={labels[index]}
+                      text={option.text}
+                      isSelected={selectedAnswers[questions[currentQuestionIndex].id] === option.id}
+                      onSelect={() => handleAnswerSelect(questions[currentQuestionIndex].id, option.id)}
+                    />
+                  );
+                })}
               </View>
+
+              {/* Flag Question Button */}
+              <TouchableOpacity
+                style={[
+                  styles.flagButton,
+                  {
+                    backgroundColor: flaggedQuestions.has(questions[currentQuestionIndex].id)
+                      ? theme.colors.warning + '20'
+                      : theme.colors.surface,
+                    borderColor: flaggedQuestions.has(questions[currentQuestionIndex].id)
+                      ? theme.colors.warning
+                      : theme.colors.border,
+                  }
+                ]}
+                onPress={handleFlagQuestion}
+                accessibilityLabel="Flag question for review"
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name={flaggedQuestions.has(questions[currentQuestionIndex].id) ? "flag" : "flag-outline"}
+                  size={20}
+                  color={flaggedQuestions.has(questions[currentQuestionIndex].id) ? theme.colors.warning : theme.colors.text}
+                />
+                <ThemedText style={[
+                  styles.flagButtonText,
+                  {
+                    color: flaggedQuestions.has(questions[currentQuestionIndex].id)
+                      ? theme.colors.warning
+                      : theme.colors.text
+                  }
+                ]}>
+                  {flaggedQuestions.has(questions[currentQuestionIndex].id)
+                    ? 'Flagged for Review'
+                    : 'Flag Question for Review'}
+                </ThemedText>
+              </TouchableOpacity>
             </View>
-          ))}
+          )}
         </ThemedView>
       </ScrollView>
 
-      {/* Submit Button */}
-      <View style={[styles.submitContainer, { backgroundColor: theme.colors.card }]}>
+      {/* Navigation Buttons */}
+      <View style={[styles.navigationContainer, { backgroundColor: theme.colors.card }]}>
         <Button
-          title="Submit Quiz"
-          onPress={handleSubmitQuiz}
-          loading={submitting}
-          style={styles.submitButton}
+          title="Previous"
+          variant="outline"
+          onPress={handlePreviousQuestion}
+          disabled={currentQuestionIndex === 0}
+          style={styles.navButton}
+        />
+        <Button
+          title={currentQuestionIndex === questions.length - 1 ? 'Submit Quiz' : 'Next Question'}
+          onPress={handleNextQuestion}
+          loading={submitting && currentQuestionIndex === questions.length - 1}
+          style={styles.navButton}
         />
       </View>
     </SafeAreaView>
@@ -395,7 +508,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   timerContainer: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timerIcon: {
+    marginRight: 4,
   },
   timer: {
     fontSize: 20,
@@ -420,46 +538,86 @@ const styles = StyleSheet.create({
   },
   questionCard: {
     padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  questionNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    opacity: 0.7,
   },
   questionText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 16,
-    lineHeight: 24,
+    marginBottom: 24,
+    lineHeight: 28,
   },
   optionsContainer: {
-    gap: 12,
+    marginBottom: 24,
   },
-  optionButton: {
-    padding: 16,
+  flagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
     borderRadius: 8,
     borderWidth: 1,
+    gap: 8,
   },
-  optionText: {
-    fontSize: 16,
-    lineHeight: 20,
+  flagButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
-  submitContainer: {
+  navigationContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    gap: 12,
   },
-  submitButton: {
+  navButton: {
+    flex: 1,
+  },
+  resultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 24,
+  },
+  resultsHeader: {
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    gap: 16,
+  },
+  resultsTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  resultsScore: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  resultsMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  resultsStats: {
+    padding: 24,
+    borderRadius: 16,
+    gap: 16,
+  },
+  statItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 16,
+    opacity: 0.8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  resultsActions: {
+    gap: 12,
+  },
+  resultsButton: {
     marginBottom: 8,
   },
 });

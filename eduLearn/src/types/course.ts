@@ -5,8 +5,28 @@ export interface Course {
   instructor: {
     id: string;
     username: string;
+    avatar?: string;
   };
   created_at: string;
+  category?: string;
+  rating?: number;
+  imageUrl?: string;
+  videoUrl?: string;
+  duration?: number;
+  chapters?: Chapter[];
+  status?: 'draft' | 'active' | 'archived';
+}
+
+export interface Chapter {
+  id: string;
+  courseId: string;
+  number: number;
+  title: string;
+  contentType: 'video' | 'reading' | 'quiz';
+  duration: string;
+  videoUrl?: string;
+  readingContent?: string;
+  quizId?: string;
 }
 
 export interface Enrollment {

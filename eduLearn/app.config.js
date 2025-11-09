@@ -14,6 +14,10 @@ export default {
             resizeMode: 'contain',
             backgroundColor: '#ffffff'
         },
+        updates: {
+            enabled: false,
+            fallbackToCacheTimeout: 0
+        },
         ios: {
             supportsTablet: true
         },
@@ -23,7 +27,8 @@ export default {
                 backgroundColor: '#ffffff'
             },
             edgeToEdgeEnabled: true,
-            predictiveBackGestureEnabled: false
+            predictiveBackGestureEnabled: false,
+            package: 'com.edulearn.app'
         },
         web: {
             favicon: './assets/favicon.png'

@@ -1,33 +1,111 @@
-import { ColorScheme } from '../types/theme';
+import { ColorScheme, Spacing, BorderRadius, Typography } from '../types/theme';
 
 export const lightColors: ColorScheme = {
-  primary: '#3B82F6',
-  primaryDark: '#1D4ED8',
-  secondary: '#64748B',
+  // Backgrounds
   background: '#FFFFFF',
-  surface: '#F8FAFC',
+  surface: '#F5F5F5',
   card: '#FFFFFF',
-  text: '#1E293B',
-  textSecondary: '#64748B',
-  border: '#E2E8F0',
-  notification: '#EF4444',
-  error: '#EF4444',
-  success: '#10B981',
-  warning: '#F59E0B',
+
+  // Text
+  text: '#1A1A1A',
+  textSecondary: '#666666',
+  textTertiary: '#999999',
+
+  // Primary
+  primary: '#3D3BF3',
+  primaryLight: '#6B69F5',
+  primaryDark: '#2A29C4',
+
+  // Accent
+  accent: '#00D9FF',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  error: '#F44336',
+
+  // UI
+  border: '#E0E0E0',
+  divider: '#F0F0F0',
+  shadow: 'rgba(0, 0, 0, 0.1)',
+  overlay: 'rgba(0, 0, 0, 0.5)',
+  notification: '#F44336',
 };
 
 export const darkColors: ColorScheme = {
-  primary: '#60A5FA',
-  primaryDark: '#3B82F6',
-  secondary: '#94A3B8',
-  background: '#0F172A',
-  surface: '#1E293B',
-  card: '#334155',
-  text: '#F1F5F9',
-  textSecondary: '#94A3B8',
-  border: '#334155',
-  notification: '#F87171',
-  error: '#F87171',
-  success: '#34D399',
-  warning: '#FBBF24',
+  // Backgrounds
+  background: '#121212',
+  surface: '#1E1E1E',
+  card: '#2C2C2C',
+
+  // Text
+  text: '#FFFFFF',
+  textSecondary: '#B3B3B3',
+  textTertiary: '#808080',
+
+  // Primary
+  primary: '#5B59F7',
+  primaryLight: '#7D7BF9',
+  primaryDark: '#3D3BF3',
+
+  // Accent
+  accent: '#00D9FF',
+  success: '#66BB6A',
+  warning: '#FFA726',
+  error: '#EF5350',
+
+  // UI
+  border: '#3A3A3A',
+  divider: '#2A2A2A',
+  shadow: 'rgba(0, 0, 0, 0.3)',
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  notification: '#EF5350',
+};
+
+export const spacing: Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+};
+
+export const borderRadius: BorderRadius = {
+  sm: 4,
+  md: 8,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+};
+
+export const typography: Typography = {
+  h1: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 36,
+  },
+  h2: {
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 32,
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 28,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: '400',
+    lineHeight: 24,
+  },
+  caption: {
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+  },
+  small: {
+    fontSize: 12,
+    fontWeight: '400',
+    lineHeight: 16,
+  },
 };

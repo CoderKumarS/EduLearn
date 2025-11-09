@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  StyleSheet, 
-  RefreshControl, 
-  TouchableOpacity,
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
   TextInput,
-  Alert 
+  FlatList
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { ThemedView, ThemedText, Button } from '../components';
+import { ThemedText } from '../components';
+import { CourseCard } from '../components/CourseCard';
+import { FilterChip } from '../components/FilterChip';
 import { courseService } from '../services/courseService';
-import { Course, Enrollment } from '../types/course';
+import { Course } from '../types/course';
 import { handleApiError } from '../utils/errorHandler';
 
 interface CoursesScreenProps {
@@ -21,28 +22,29 @@ interface CoursesScreenProps {
   onNavigateToCourse: (courseId: string) => void;
 }
 
+const CATEGORIES = ['All', 'AI & ML', 'Programming', 'Data Science', 'Design', 'Cybersecurity', 'Marketing'];
+
 export const CoursesScreen: React.FC<CoursesScreenProps> = ({
-  onNavigateBack,
   onNavigateToCourse,
 }) => {
-  const { authState } = useAuth();
   const { theme } = useTheme();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const [displayedCourses, setDisplayedCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const ITEMS_PER_PAGE = 10;
 
   const loadData = async () => {
     try {
-      const [coursesData, enrollmentsData] = await Promise.all([
-        courseService.getCourses(),
-        courseService.getEnrollments(),
-      ]);
+      const coursesData = await courseService.getCourses();
       setCourses(coursesData);
-      setEnrollments(enrollmentsData);
       setFilteredCourses(coursesData);
     } catch (error) {
       const apiError = handleApiError(error);
@@ -57,152 +59,183 @@ export const CoursesScreen: React.FC<CoursesScreenProps> = ({
     loadData();
   }, []);
 
+  // Debounce search query
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredCourses(courses);
-    } else {
-      const filtered = courses.filter(course =>
-        course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.instructor.username.toLowerCase().includes(searchQuery.toLowerCase())
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Filter courses based on search and category
+  useEffect(() => {
+    let filtered = courses;
+
+    // Apply category filter
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(course =>
+        course.title.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        course.description.toLowerCase().includes(selectedCategory.toLowerCase())
       );
-      setFilteredCourses(filtered);
     }
-  }, [searchQuery, courses]);
+
+    // Apply search filter with debounced query
+    if (debouncedSearchQuery.trim() !== '') {
+      filtered = filtered.filter(course =>
+        course.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        course.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        course.instructor.username.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredCourses(filtered);
+    setPage(1); // Reset pagination when filters change
+  }, [debouncedSearchQuery, selectedCategory, courses]);
+
+  // Paginate displayed courses
+  useEffect(() => {
+    const startIndex = 0;
+    const endIndex = page * ITEMS_PER_PAGE;
+    setDisplayedCourses(filteredCourses.slice(startIndex, endIndex));
+  }, [filteredCourses, page]);
 
   const onRefresh = () => {
     setRefreshing(true);
+    setPage(1);
     loadData();
   };
 
-  const isEnrolled = (courseId: string) => {
-    return enrollments.some(enrollment => enrollment.course.id === courseId);
-  };
-
-  const handleEnroll = async (courseId: string) => {
-    if (enrollingCourseId) return;
-
-    setEnrollingCourseId(courseId);
-    try {
-      const enrollment = await courseService.enrollInCourse(courseId);
-      setEnrollments(prev => [...prev, enrollment]);
-      Alert.alert('Success', 'Successfully enrolled in the course!');
-    } catch (error) {
-      const apiError = handleApiError(error);
-      Alert.alert('Error', apiError.message);
-    } finally {
-      setEnrollingCourseId(null);
+  const handleLoadMore = () => {
+    if (loadingMore || displayedCourses.length >= filteredCourses.length) {
+      return;
     }
+
+    setLoadingMore(true);
+    setTimeout(() => {
+      setPage(prevPage => prevPage + 1);
+      setLoadingMore(false);
+    }, 500);
   };
 
-  const renderCourseCard = (course: Course) => {
-    const enrolled = isEnrolled(course.id);
-    const isEnrolling = enrollingCourseId === course.id;
+  const renderCourseCard = ({ item, index }: { item: Course; index: number }) => {
+    // Determine category badge from course title/description
+    let category = 'General';
+    const lowerTitle = item.title.toLowerCase();
+    const lowerDesc = item.description.toLowerCase();
+
+    if (lowerTitle.includes('ai') || lowerTitle.includes('ml') || lowerDesc.includes('machine learning')) {
+      category = 'AI & ML';
+    } else if (lowerTitle.includes('program') || lowerTitle.includes('code')) {
+      category = 'Programming';
+    } else if (lowerTitle.includes('data') || lowerTitle.includes('science')) {
+      category = 'Data Science';
+    } else if (lowerTitle.includes('design') || lowerTitle.includes('ux')) {
+      category = 'Design';
+    } else if (lowerTitle.includes('cyber') || lowerTitle.includes('security')) {
+      category = 'Cybersecurity';
+    } else if (lowerTitle.includes('market')) {
+      category = 'Marketing';
+    }
 
     return (
-      <TouchableOpacity
-        key={course.id}
-        style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-        onPress={() => onNavigateToCourse(course.id)}
-      >
-        <View style={styles.courseHeader}>
-          <ThemedText style={styles.courseTitle} numberOfLines={2}>
-            {course.title}
-          </ThemedText>
-          <ThemedText variant="secondary" style={styles.courseInstructor}>
-            by {course.instructor.username}
-          </ThemedText>
-        </View>
-
-        <ThemedText variant="secondary" style={styles.courseDescription} numberOfLines={3}>
-          {course.description}
-        </ThemedText>
-
-        <View style={styles.courseFooter}>
-          <ThemedText variant="secondary" style={styles.courseDate}>
-            Created: {new Date(course.created_at).toLocaleDateString()}
-          </ThemedText>
-          
-          {authState.user?.role === 'student' && (
-            <View style={styles.enrollButton}>
-              {enrolled ? (
-                <Button
-                  title="Enrolled"
-                  variant="outline"
-                  size="small"
-                  disabled
-                />
-              ) : (
-                <Button
-                  title="Enroll"
-                  size="small"
-                  loading={isEnrolling}
-                  onPress={() => handleEnroll(course.id)}
-                />
-              )}
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
+      <View style={[styles.courseCardWrapper, index % 2 === 0 ? styles.courseCardLeft : styles.courseCardRight]}>
+        <CourseCard
+          id={item.id}
+          title={item.title}
+          category={category}
+          instructor={item.instructor.username}
+          rating={4.5}
+          imageUrl="https://via.placeholder.com/400x225"
+          onPress={() => onNavigateToCourse(item.id)}
+        />
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
-          <ThemedText style={[styles.backButtonText, { color: theme.colors.primary }]}>
-            ← Back
-          </ThemedText>
-        </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>All Courses</ThemedText>
-        <View style={styles.placeholder} />
-      </View>
-
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
+      <View style={[styles.searchContainer, { paddingHorizontal: theme.spacing.md }]}>
+        <View
           style={[
-            styles.searchInput,
+            styles.searchInputContainer,
             {
               backgroundColor: theme.colors.surface,
               borderColor: theme.colors.border,
-              color: theme.colors.text,
+              borderRadius: theme.borderRadius.md,
             }
           ]}
-          placeholder="Search courses..."
-          placeholderTextColor={theme.colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        >
+          <Ionicons name="search" size={20} color={theme.colors.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={[
+              styles.searchInput,
+              theme.typography.body,
+              { color: theme.colors.text },
+            ]}
+            placeholder="Search for courses or topics..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
-      {/* Courses List */}
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <ThemedView style={styles.content}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ThemedText>Loading courses...</ThemedText>
-            </View>
-          ) : filteredCourses.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <ThemedText style={styles.emptyText}>
-                {searchQuery ? 'No courses found matching your search.' : 'No courses available.'}
-              </ThemedText>
-            </View>
-          ) : (
-            <View style={styles.coursesList}>
-              {filteredCourses.map(renderCourseCard)}
-            </View>
-          )}
-        </ThemedView>
-      </ScrollView>
+      {/* Category Filters */}
+      <View style={[styles.filtersContainer, { paddingHorizontal: theme.spacing.md }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {CATEGORIES.map((category) => (
+            <FilterChip
+              key={category}
+              label={category}
+              isSelected={selectedCategory === category}
+              onPress={() => setSelectedCategory(category)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Courses Grid */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ThemedText>Loading courses...</ThemedText>
+        </View>
+      ) : filteredCourses.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="search-outline" size={64} color={theme.colors.textTertiary} />
+          <ThemedText style={[styles.emptyText, theme.typography.body, { color: theme.colors.textSecondary }]}>
+            {debouncedSearchQuery || selectedCategory !== 'All'
+              ? 'No courses found matching your criteria.'
+              : 'No courses available.'}
+          </ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={displayedCourses}
+          renderItem={renderCourseCard}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={[styles.coursesList, { paddingHorizontal: theme.spacing.md }]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ThemedText style={{ color: theme.colors.textSecondary }}>Loading more...</ThemedText>
+              </View>
+            ) : null
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -211,102 +244,60 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  searchContainer: {
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 48,
   },
-  backButton: {
-    padding: 4,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  placeholder: {
-    width: 60,
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  scrollView: {
     flex: 1,
+    height: '100%',
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
+  filtersContainer: {
+    paddingBottom: 16,
+  },
+  filtersContent: {
+    paddingRight: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingHorizontal: 32,
   },
   emptyText: {
-    fontSize: 16,
     textAlign: 'center',
+    marginTop: 16,
   },
   coursesList: {
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
-  courseCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+  courseCardWrapper: {
+    flex: 1,
+    maxWidth: '50%',
   },
-  courseHeader: {
-    marginBottom: 12,
+  courseCardLeft: {
+    paddingRight: 8,
   },
-  courseTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
+  courseCardRight: {
+    paddingLeft: 8,
   },
-  courseInstructor: {
-    fontSize: 14,
-  },
-  courseDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  courseFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loadingMoreContainer: {
+    paddingVertical: 16,
     alignItems: 'center',
-  },
-  courseDate: {
-    fontSize: 12,
-  },
-  enrollButton: {
-    minWidth: 80,
   },
 });

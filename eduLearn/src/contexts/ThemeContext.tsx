@@ -2,10 +2,10 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeState, ThemeMode, ThemeContextType } from '../types/theme';
-import { lightColors, darkColors } from '../constants/colors';
+import { lightColors, darkColors, spacing, borderRadius, typography } from '../constants/colors';
 
 // Theme reducer
-type ThemeAction = 
+type ThemeAction =
   | { type: 'SET_THEME_MODE'; payload: ThemeMode }
   | { type: 'SET_SYSTEM_THEME'; payload: boolean }
   | { type: 'TOGGLE_THEME' };
@@ -15,20 +15,20 @@ const themeReducer = (state: ThemeState, action: ThemeAction): ThemeState => {
     case 'SET_THEME_MODE':
       const newMode = action.payload;
       let isDark = state.isDark;
-      
+
       if (newMode === 'system') {
         isDark = Appearance.getColorScheme() === 'dark';
       } else {
         isDark = newMode === 'dark';
       }
-      
+
       return {
         ...state,
         mode: newMode,
         isDark,
         colors: isDark ? darkColors : lightColors,
       };
-    
+
     case 'SET_SYSTEM_THEME':
       if (state.mode === 'system') {
         return {
@@ -38,7 +38,7 @@ const themeReducer = (state: ThemeState, action: ThemeAction): ThemeState => {
         };
       }
       return state;
-    
+
     case 'TOGGLE_THEME':
       const toggledMode = state.mode === 'light' ? 'dark' : 'light';
       return {
@@ -47,7 +47,7 @@ const themeReducer = (state: ThemeState, action: ThemeAction): ThemeState => {
         isDark: toggledMode === 'dark',
         colors: toggledMode === 'dark' ? darkColors : lightColors,
       };
-    
+
     default:
       return state;
   }
@@ -57,11 +57,14 @@ const themeReducer = (state: ThemeState, action: ThemeAction): ThemeState => {
 const getInitialTheme = (): ThemeState => {
   const systemColorScheme = Appearance.getColorScheme();
   const isDark = systemColorScheme === 'dark';
-  
+
   return {
     mode: 'system',
     isDark,
     colors: isDark ? darkColors : lightColors,
+    spacing,
+    borderRadius,
+    typography,
   };
 };
 

@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  StyleSheet, 
+import {
+  View,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
-  Alert 
+  Alert,
+  Share,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemedView, ThemedText, Button } from '../components';
+import { ChapterItem } from '../components/ChapterItem';
 import { courseService } from '../services/courseService';
-import { Course, Quiz, Enrollment } from '../types/course';
+import { Course, Quiz, Enrollment, Chapter } from '../types/course';
 import { handleApiError } from '../utils/errorHandler';
+
+const { width } = Dimensions.get('window');
 
 interface CourseDetailScreenProps {
   courseId: string;
@@ -32,6 +38,8 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadCourseData();
@@ -44,7 +52,7 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
         courseService.getQuizzes(),
         courseService.getEnrollments(),
       ]);
-      
+
       setCourse(courseData);
       // Filter quizzes for this course
       const courseQuizzes = quizzesData.filter(quiz => quiz.course === courseId);
@@ -59,15 +67,15 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
   };
 
   const isEnrolled = () => {
-    return enrollments.some(enrollment => 
-      enrollment.course.id === courseId && 
+    return enrollments.some(enrollment =>
+      enrollment.course.id === courseId &&
       enrollment.student.id === authState.user?.id
     );
   };
 
   const handleEnroll = async () => {
     if (!course) return;
-    
+
     setEnrolling(true);
     try {
       const enrollment = await courseService.enrollInCourse(courseId);
@@ -79,6 +87,40 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
     } finally {
       setEnrolling(false);
     }
+  };
+
+  const handleShare = async () => {
+    if (!course) return;
+
+    try {
+      await Share.share({
+        message: `Check out this course: ${course.title}\n${course.description}`,
+        title: course.title,
+      });
+    } catch (error) {
+      console.error('Error sharing course:', error);
+    }
+  };
+
+  const handleBookmark = () => {
+    setBookmarked(!bookmarked);
+    // TODO: Persist bookmark state to backend
+    Alert.alert(
+      bookmarked ? 'Bookmark Removed' : 'Bookmarked',
+      bookmarked ? 'Course removed from bookmarks' : 'Course added to bookmarks'
+    );
+  };
+
+  const toggleChapter = (chapterId: string) => {
+    setExpandedChapters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(chapterId)) {
+        newSet.delete(chapterId);
+      } else {
+        newSet.add(chapterId);
+      }
+      return newSet;
+    });
   };
 
   if (loading) {
@@ -108,33 +150,115 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header with Share and Bookmark */}
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
-          <ThemedText style={[styles.backButtonText, { color: theme.colors.primary }]}>
-            ← Back
-          </ThemedText>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={styles.iconButton}
+            accessibilityLabel="Share course"
+            accessibilityRole="button"
+          >
+            <Ionicons name="share-outline" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleBookmark}
+            style={styles.iconButton}
+            accessibilityLabel={bookmarked ? "Remove bookmark" : "Bookmark course"}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name={bookmarked ? "bookmark" : "bookmark-outline"}
+              size={24}
+              color={bookmarked ? theme.colors.primary : theme.colors.text}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView}>
+        {/* Video Player Area */}
+        <View style={[styles.videoContainer, { backgroundColor: theme.colors.surface }]}>
+          {course.videoUrl ? (
+            <View style={styles.videoPlaceholder}>
+              <Ionicons name="play-circle" size={64} color={theme.colors.primary} />
+              <ThemedText variant="secondary" style={styles.videoText}>
+                Video Player
+              </ThemedText>
+              <ThemedText variant="secondary" style={styles.videoSubtext}>
+                {course.videoUrl}
+              </ThemedText>
+            </View>
+          ) : (
+            <View style={styles.videoPlaceholder}>
+              <Ionicons name="videocam-off-outline" size={64} color={theme.colors.textSecondary} />
+              <ThemedText variant="secondary" style={styles.videoText}>
+                No preview video available
+              </ThemedText>
+            </View>
+          )}
+        </View>
+
         <ThemedView style={styles.content}>
           {/* Course Info */}
-          <View style={[styles.courseInfo, { backgroundColor: theme.colors.card }]}>
+          <View style={styles.courseInfoSection}>
             <ThemedText style={styles.courseTitle}>{course.title}</ThemedText>
-            <ThemedText variant="secondary" style={styles.instructor}>
-              Instructor: {course.instructor.username}
-            </ThemedText>
-            <ThemedText variant="secondary" style={styles.createdDate}>
-              Created: {new Date(course.created_at).toLocaleDateString()}
-            </ThemedText>
-          </View>
-
-          {/* Course Description */}
-          <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-            <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+            <View style={styles.instructorRow}>
+              <Ionicons name="person-circle-outline" size={20} color={theme.colors.textSecondary} />
+              <ThemedText variant="secondary" style={styles.instructor}>
+                {course.instructor.username}
+              </ThemedText>
+            </View>
             <ThemedText style={styles.description}>{course.description}</ThemedText>
           </View>
+
+          {/* Course Chapters */}
+          {course.chapters && course.chapters.length > 0 && (
+            <View style={styles.chaptersSection}>
+              <ThemedText style={styles.sectionTitle}>Course Chapters</ThemedText>
+              {course.chapters.map((chapter) => (
+                <ChapterItem
+                  key={chapter.id}
+                  chapterNumber={chapter.number}
+                  title={chapter.title}
+                  contentType={chapter.contentType}
+                  duration={chapter.duration}
+                  isExpanded={expandedChapters.has(chapter.id)}
+                  onToggle={() => toggleChapter(chapter.id)}
+                >
+                  {chapter.contentType === 'quiz' && chapter.quizId && (
+                    <View style={styles.chapterContent}>
+                      <ThemedText variant="secondary" style={styles.chapterDescription}>
+                        Test your knowledge with this quiz
+                      </ThemedText>
+                      <Button
+                        title="Start Quiz"
+                        onPress={() => onNavigateToQuiz(chapter.quizId!)}
+                        style={styles.startQuizButton}
+                      />
+                    </View>
+                  )}
+                  {chapter.contentType === 'video' && chapter.videoUrl && (
+                    <View style={styles.chapterContent}>
+                      <ThemedText variant="secondary" style={styles.chapterDescription}>
+                        Video lesson
+                      </ThemedText>
+                    </View>
+                  )}
+                  {chapter.contentType === 'reading' && (
+                    <View style={styles.chapterContent}>
+                      <ThemedText variant="secondary" style={styles.chapterDescription}>
+                        Reading material
+                      </ThemedText>
+                    </View>
+                  )}
+                </ChapterItem>
+              ))}
+            </View>
+          )}
 
           {/* Enrollment Status */}
           {authState.user?.role === 'student' && !isOwnCourse && (
@@ -168,7 +292,7 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
               <ThemedText style={styles.sectionTitle}>
                 Quizzes ({quizzes.length})
               </ThemedText>
-              
+
               {quizzes.length === 0 ? (
                 <ThemedText variant="secondary" style={styles.noQuizzes}>
                   No quizzes available for this course yet.
@@ -224,15 +348,44 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderBottomWidth: 1,
   },
   backButton: {
     padding: 4,
   },
-  backButtonText: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  videoContainer: {
+    width: width,
+    aspectRatio: 16 / 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  videoText: {
     fontSize: 16,
-    fontWeight: '600',
+    marginTop: 8,
+  },
+  videoSubtext: {
+    fontSize: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   scrollView: {
     flex: 1,
@@ -240,6 +393,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   loadingContainer: {
@@ -253,30 +407,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  courseInfo: {
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+  courseInfoSection: {
+    marginBottom: 24,
   },
   courseTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontWeight: '700',
+    marginBottom: 12,
+    lineHeight: 32,
+  },
+  instructorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
   },
   instructor: {
     fontSize: 16,
-    marginBottom: 4,
   },
-  createdDate: {
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  chaptersSection: {
+    marginBottom: 24,
+  },
+  chapterContent: {
+    paddingTop: 8,
+  },
+  chapterDescription: {
     fontSize: 14,
+    marginBottom: 12,
+  },
+  startQuizButton: {
+    alignSelf: 'flex-start',
   },
   section: {
     padding: 20,
@@ -292,13 +456,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
   },
   enrolledStatus: {
     alignItems: 'center',
