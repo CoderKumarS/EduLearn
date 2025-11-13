@@ -1,0 +1,124 @@
+import axios from 'axios';
+import { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth';
+import config from '../constants/config';
+
+class AuthService {
+    private baseURL: string;
+
+    constructor() {
+        this.baseURL = config.apiAuthUrl;
+    }
+
+    async login(credentials: LoginCredentials): Promise<AuthResponse> {
+        console.log('=== Login Attempt ===');
+        console.log('Auth URL:', this.baseURL);
+        console.log('Full endpoint:', `${this.baseURL}/token/`);
+        console.log('Username:', credentials.username);
+
+        try {
+            // Step 1: Get authentication tokens
+            const response = await axios.post(`${this.baseURL}/token/`, {
+                username: credentials.username,
+                password: credentials.password,
+            });
+
+            console.log('✅ Login successful! Tokens received.');
+            const { access, refresh, user: userData } = response.data;
+
+            // Step 2: Use user data from response (includes role)
+            let user: User;
+            if (userData) {
+                // Backend now returns user data with role
+                user = {
+                    id: userData.id?.toString() || '1',
+                    username: userData.username,
+                    email: userData.email,
+                    role: userData.role || 'student',
+                };
+                console.log('✅ User profile received from backend:', user.role);
+            } else {
+                // Fallback: Extract from JWT token
+                try {
+                    const payload = access.split('.')[1];
+                    const decodedPayload = JSON.parse(atob(payload));
+
+                    user = {
+                        id: decodedPayload.user_id?.toString() || '1',
+                        username: credentials.username,
+                        role: decodedPayload.role || 'student',
+                        email: decodedPayload.email,
+                    };
+                    console.log('✅ User data extracted from token');
+                } catch (decodeError) {
+                    // Final fallback
+                    user = {
+                        id: '1',
+                        username: credentials.username,
+                        role: 'student',
+                    };
+                    console.log('✅ Using fallback user data');
+                }
+            }
+
+            return {
+                access,
+                refresh,
+                user,
+            };
+        } catch (error) {
+            console.error('=== Login Error ===');
+            console.error('Error:', error);
+            if (axios.isAxiosError(error)) {
+                console.error('Response status:', error.response?.status);
+                console.error('Response data:', error.response?.data);
+                console.error('Request URL:', error.config?.url);
+                console.error('Has response:', !!error.response);
+            }
+            console.error('==================');
+            throw error;
+        }
+    }
+
+    async register(userData: RegisterData): Promise<AuthResponse> {
+        try {
+            const response = await axios.post(`${this.baseURL}/register/`, {
+                username: userData.username,
+                email: userData.email,
+                password: userData.password,
+                role: userData.role || 'student',
+            });
+
+            // After successful registration, login to get tokens
+            return await this.login({
+                username: userData.username,
+                password: userData.password,
+            });
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async refreshToken(refreshToken: string): Promise<AuthResponse> {
+        try {
+            const response = await axios.post(`${this.baseURL}/token/refresh/`, {
+                refresh: refreshToken,
+            });
+
+            return {
+                access: response.data.access,
+                refresh: refreshToken, // Keep the same refresh token
+            };
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async logout(): Promise<void> {
+        // For JWT tokens, logout is typically handled client-side
+        // by removing the tokens from storage
+        // If your backend has a logout endpoint, you can call it here
+        return Promise.resolve();
+    }
+}
+
+export const authService = new AuthService();
