@@ -483,17 +483,15 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                                 </ThemedText>
                                             </View>
                                             <TouchableOpacity
-                                                style={[styles.manageQuizButton, { backgroundColor: hasQuizzes ? theme.colors.primary : theme.colors.textSecondary }]}
+                                                style={[styles.manageQuizButton, { backgroundColor: theme.colors.primary }]}
                                                 onPress={() => {
-                                                    if (hasQuizzes) {
-                                                        Alert.alert('Quiz Management', 'Quiz editor coming soon');
-                                                    } else {
-                                                        Alert.alert('No Quiz', 'Create a quiz for this chapter first');
+                                                    if (onNavigateToManageQuiz) {
+                                                        onNavigateToManageQuiz(chapter.id, courseId);
                                                     }
                                                 }}
                                             >
-                                                <Ionicons name={hasQuizzes ? "create-outline" : "add-circle-outline"} size={18} color="#FFFFFF" />
-                                                <ThemedText style={styles.manageQuizText}>{hasQuizzes ? 'Manage' : 'Create'}</ThemedText>
+                                                <Ionicons name="help-circle-outline" size={18} color="#FFFFFF" />
+                                                <ThemedText style={styles.manageQuizText}>Manage Quizzes</ThemedText>
                                             </TouchableOpacity>
                                         </View>
                                     );
