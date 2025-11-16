@@ -529,27 +529,27 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                         </ThemedText>
                                     )}
                                     <View style={styles.chapterMeta}>
-                                        {chapter.duration_minutes > 0 && (
+                                        {chapter.total_topics !== undefined && chapter.total_topics > 0 && (
+                                            <View style={[styles.metaItem, { backgroundColor: theme.colors.primary + '15' }]}>
+                                                <Ionicons name="book-outline" size={14} color={theme.colors.primary} />
+                                                <ThemedText style={[styles.metaText, { color: theme.colors.primary }]}>
+                                                    {chapter.total_topics} {chapter.total_topics === 1 ? 'Topic' : 'Topics'}
+                                                </ThemedText>
+                                            </View>
+                                        )}
+                                        {chapter.quizzes && chapter.quizzes.length > 0 && (
+                                            <View style={[styles.metaItem, { backgroundColor: theme.colors.success + '15' }]}>
+                                                <Ionicons name="help-circle-outline" size={14} color={theme.colors.success} />
+                                                <ThemedText style={[styles.metaText, { color: theme.colors.success }]}>
+                                                    {chapter.quizzes.length} {chapter.quizzes.length === 1 ? 'Quiz' : 'Quizzes'}
+                                                </ThemedText>
+                                            </View>
+                                        )}
+                                        {chapter.total_duration > 0 && (
                                             <View style={styles.metaItem}>
                                                 <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
-                                                <ThemedText variant="secondary" style={styles.metaText}>
-                                                    {chapter.duration_minutes} min
-                                                </ThemedText>
-                                            </View>
-                                        )}
-                                        {chapter.video_url && (
-                                            <View style={styles.metaItem}>
-                                                <Ionicons name="videocam-outline" size={14} color={theme.colors.textSecondary} />
-                                                <ThemedText variant="secondary" style={styles.metaText}>
-                                                    Video
-                                                </ThemedText>
-                                            </View>
-                                        )}
-                                        {chapter.topics && chapter.topics.length > 0 && (
-                                            <View style={styles.metaItem}>
-                                                <Ionicons name="list-outline" size={14} color={theme.colors.textSecondary} />
-                                                <ThemedText variant="secondary" style={styles.metaText}>
-                                                    {chapter.topics.length} topics
+                                                <ThemedText style={styles.metaText}>
+                                                    {chapter.total_duration} min
                                                 </ThemedText>
                                             </View>
                                         )}
@@ -557,19 +557,19 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                     <View style={styles.chapterManagementButtons}>
                                         {onNavigateToManageTopics && (
                                             <TouchableOpacity
-                                                style={[styles.manageButton, { borderColor: theme.colors.border }]}
+                                                style={[styles.manageButton]}
                                                 onPress={() => onNavigateToManageTopics(chapter.id)}
                                             >
-                                                <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
+                                                <Ionicons name="document-text-outline" size={18} color="#000000ff" />
                                                 <ThemedText style={styles.manageButtonText}>Manage Topics</ThemedText>
                                             </TouchableOpacity>
                                         )}
                                         {onNavigateToManageQuiz && (
                                             <TouchableOpacity
-                                                style={[styles.manageButton, { borderColor: theme.colors.border }]}
+                                                style={[styles.manageButton]}
                                                 onPress={() => onNavigateToManageQuiz(chapter.id)}
                                             >
-                                                <Ionicons name="help-circle-outline" size={16} color={theme.colors.primary} />
+                                                <Ionicons name="help-circle-outline" size={18} color="#000000ff" />
                                                 <ThemedText style={styles.manageButtonText}>Manage Quizzes</ThemedText>
                                             </TouchableOpacity>
                                         )}
@@ -759,51 +759,77 @@ const styles = StyleSheet.create({
         padding: 2,
     },
     chapterCard: {
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     chapterHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
+        marginBottom: 12,
     },
     chapterInfo: {
         flex: 1,
     },
     chapterNumber: {
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 4,
+        fontSize: 13,
+        fontWeight: '700',
+        marginBottom: 6,
+        opacity: 0.6,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
     },
     chapterTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: '700',
+        lineHeight: 24,
     },
     chapterActions: {
         flexDirection: 'row',
         gap: 8,
     },
     actionButton: {
-        padding: 4,
+        padding: 8,
+        borderRadius: 8,
     },
     chapterDescription: {
         fontSize: 14,
         marginTop: 8,
+        lineHeight: 20,
+        opacity: 0.8,
     },
     chapterMeta: {
         flexDirection: 'row',
-        gap: 12,
-        marginTop: 8,
+        gap: 8,
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
         flexWrap: 'wrap',
     },
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
     },
     metaText: {
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: '500',
     },
     errorContainer: {
         flex: 1,
@@ -845,22 +871,25 @@ const styles = StyleSheet.create({
     },
     chapterManagementButtons: {
         flexDirection: 'row',
-        gap: 8,
-        marginTop: 12,
+        gap: 10,
+        marginTop: 16,
     },
     manageButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        gap: 8,
+        borderStyle: 'solid',
         borderWidth: 1,
-        gap: 6,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
     },
     manageButtonText: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: '500',
+        color: '#000000ff',
     },
 });

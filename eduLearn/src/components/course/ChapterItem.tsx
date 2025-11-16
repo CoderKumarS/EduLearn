@@ -9,6 +9,8 @@ interface ChapterItemProps {
     videoUrl?: string;
     duration: number;
     hasQuiz?: boolean;
+    topicCount?: number;
+    quizCount?: number;
     isExpanded: boolean;
     onToggle: () => void;
     onEdit?: () => void;
@@ -22,6 +24,8 @@ export const ChapterItem: React.FC<ChapterItemProps> = ({
     videoUrl,
     duration,
     hasQuiz,
+    topicCount,
+    quizCount,
     isExpanded,
     onToggle,
     onEdit,
@@ -119,58 +123,55 @@ export const ChapterItem: React.FC<ChapterItemProps> = ({
                             {title}
                         </Text>
                         <View style={styles.metaContainer}>
-                            {videoUrl && (
-                                <>
+                            {topicCount !== undefined && topicCount > 0 && (
+                                <View style={[styles.badge, { backgroundColor: theme.colors.primary + '15' }]}>
                                     <Ionicons
-                                        name="play-circle-outline"
+                                        name="book-outline"
                                         size={14}
-                                        color={theme.colors.textSecondary}
+                                        color={theme.colors.primary}
                                     />
                                     <Text
                                         style={[
-                                            styles.meta,
-                                            theme.typography.small,
-                                            { color: theme.colors.textSecondary },
+                                            styles.badgeText,
+                                            { color: theme.colors.primary },
                                         ]}
                                     >
-                                        Video
+                                        {topicCount} {topicCount === 1 ? 'Topic' : 'Topics'}
                                     </Text>
-                                </>
+                                </View>
                             )}
-                            {hasQuiz && (
-                                <>
+                            {quizCount !== undefined && quizCount > 0 && (
+                                <View style={[styles.badge, { backgroundColor: theme.colors.success + '15' }]}>
                                     <Ionicons
                                         name="help-circle-outline"
                                         size={14}
-                                        color={theme.colors.textSecondary}
-                                        style={videoUrl ? styles.durationIcon : undefined}
+                                        color={theme.colors.success}
                                     />
                                     <Text
                                         style={[
-                                            styles.meta,
-                                            theme.typography.small,
-                                            { color: theme.colors.textSecondary },
+                                            styles.badgeText,
+                                            { color: theme.colors.success },
                                         ]}
                                     >
-                                        Quiz
+                                        {quizCount} {quizCount === 1 ? 'Quiz' : 'Quizzes'}
                                     </Text>
-                                </>
+                                </View>
                             )}
-                            <Ionicons
-                                name="time-outline"
-                                size={14}
-                                color={theme.colors.textSecondary}
-                                style={styles.durationIcon}
-                            />
-                            <Text
-                                style={[
-                                    styles.meta,
-                                    theme.typography.small,
-                                    { color: theme.colors.textSecondary },
-                                ]}
-                            >
-                                {formatDuration(duration)}
-                            </Text>
+                            <View style={[styles.badge, { backgroundColor: theme.colors.textSecondary + '10' }]}>
+                                <Ionicons
+                                    name="time-outline"
+                                    size={14}
+                                    color={theme.colors.textSecondary}
+                                />
+                                <Text
+                                    style={[
+                                        styles.badgeText,
+                                        { color: theme.colors.textSecondary },
+                                    ]}
+                                >
+                                    {formatDuration(duration)}
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -244,15 +245,23 @@ export const ChapterItem: React.FC<ChapterItemProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 12,
+        marginBottom: 16,
         borderWidth: 1,
         overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
+        padding: 18,
     },
     headerLeft: {
         flexDirection: 'row',
@@ -260,25 +269,42 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     chapterNumber: {
-        width: 32,
-        height: 32,
+        width: 40,
+        height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 14,
     },
     chapterNumberText: {
         fontWeight: '700',
+        fontSize: 16,
     },
     titleContainer: {
         flex: 1,
     },
     title: {
-        fontWeight: '600',
-        marginBottom: 4,
+        fontWeight: '700',
+        fontSize: 16,
+        marginBottom: 8,
+        lineHeight: 22,
     },
     metaContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+        gap: 4,
+    },
+    badgeText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
     meta: {
         marginLeft: 4,
@@ -292,12 +318,13 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     actionButton: {
-        padding: 4,
+        padding: 6,
         marginRight: 8,
+        borderRadius: 6,
     },
     expandedContent: {
         borderTopWidth: 1,
-        paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingHorizontal: 18,
+        paddingBottom: 18,
     },
 });

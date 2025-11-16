@@ -16,8 +16,16 @@ class TopicService {
     async getTopics(chapterId?: number): Promise<Topic[]> {
         try {
             const params = chapterId ? { chapter: chapterId } : {};
-            const response = await api.get<Topic[]>(this.baseUrl + '/', { params });
-            return response.data;
+            const response = await api.get<any>(this.baseUrl + '/', { params });
+
+            // Handle both paginated and non-paginated responses
+            const data = response.data;
+            if (Array.isArray(data)) {
+                return data;
+            } else if (data && typeof data === 'object' && 'results' in data) {
+                return data.results || [];
+            }
+            return [];
         } catch (error) {
             throw handleApiError(error);
         }

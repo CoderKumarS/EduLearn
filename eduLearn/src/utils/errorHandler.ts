@@ -40,12 +40,29 @@ export const handleApiError = (error: unknown): ApiError => {
         }
 
         const status = error.response?.status;
-        const message = error.response?.data?.message || error.message;
+        const responseData = error.response?.data as any;
+        const message = responseData?.message || error.message;
 
         switch (status) {
             case 400:
+                // For validation errors, try to extract detailed error messages
+                let detailedMessage = 'Invalid request. Please check your input.';
+                if (responseData) {
+                    // Check for DRF validation errors (field-specific errors)
+                    if (typeof responseData === 'object' && !responseData.message) {
+                        const errors = Object.entries(responseData)
+                            .map(([field, msgs]) => {
+                                const messages = Array.isArray(msgs) ? msgs : [msgs];
+                                return `${field}: ${messages.join(', ')}`;
+                            })
+                            .join('\n');
+                        detailedMessage = errors || detailedMessage;
+                    } else if (responseData.message) {
+                        detailedMessage = responseData.message;
+                    }
+                }
                 return {
-                    message: 'Invalid request. Please check your input.',
+                    message: detailedMessage,
                     status,
                     code: 'BAD_REQUEST',
                 };
