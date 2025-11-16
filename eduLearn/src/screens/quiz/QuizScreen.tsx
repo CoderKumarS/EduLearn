@@ -33,7 +33,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-    const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+    const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -121,14 +121,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
                 })),
             };
 
-            console.log('Submitting quiz:', {
-                quizId: quiz.id,
-                submission,
-                selectedAnswers,
-            });
-
             const result = await quizService.quiz.submitQuiz(quiz.id, submission);
-            console.log('Quiz result:', result);
             setQuizResults(result);
             setShowResults(true);
         } catch (error) {

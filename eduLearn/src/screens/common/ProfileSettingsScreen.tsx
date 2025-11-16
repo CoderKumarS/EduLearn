@@ -136,7 +136,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
                             if (!user?.id) {
                                 throw new Error('User not authenticated');
                             }
-                            await profileService.deleteAccount(user.id, '');
+                            await profileService.deleteAccount(user.id.toString(), '');
                             Alert.alert('Success', 'Account deleted successfully');
                             // TODO: Navigate to login screen
                         } catch (error) {
@@ -183,24 +183,54 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
 
                     <View style={styles.inputGroup}>
                         <ThemedText style={styles.inputLabel}>Primary Email</ThemedText>
-                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
-                            <ThemedText style={styles.inputText}>{formData.email}</ThemedText>
-                        </View>
+                        <Input
+                            value={formData.email}
+                            onChangeText={(value) => handleInputChange('email', value)}
+                            placeholder="Enter your email"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                        {errors.email && (
+                            <ThemedText style={[styles.errorText, { color: theme.colors.error }]}>
+                                {errors.email}
+                            </ThemedText>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <ThemedText style={styles.inputLabel}>First Name</ThemedText>
-                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
-                            <ThemedText style={styles.inputText}>{formData.firstName}</ThemedText>
-                        </View>
+                        <Input
+                            value={formData.firstName}
+                            onChangeText={(value) => handleInputChange('firstName', value)}
+                            placeholder="Enter your first name"
+                        />
+                        {errors.firstName && (
+                            <ThemedText style={[styles.errorText, { color: theme.colors.error }]}>
+                                {errors.firstName}
+                            </ThemedText>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <ThemedText style={styles.inputLabel}>Last Name</ThemedText>
-                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
-                            <ThemedText style={styles.inputText}>{formData.lastName}</ThemedText>
-                        </View>
+                        <Input
+                            value={formData.lastName}
+                            onChangeText={(value) => handleInputChange('lastName', value)}
+                            placeholder="Enter your last name"
+                        />
+                        {errors.lastName && (
+                            <ThemedText style={[styles.errorText, { color: theme.colors.error }]}>
+                                {errors.lastName}
+                            </ThemedText>
+                        )}
                     </View>
+
+                    <Button
+                        title={loading ? 'Saving...' : 'Save Changes'}
+                        onPress={handleSaveProfile}
+                        disabled={loading}
+                        style={styles.saveButton}
+                    />
                 </View>
 
                 {/* Notification Preferences Section */}
@@ -387,6 +417,13 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 15,
         fontWeight: '600',
+    },
+    saveButton: {
+        marginTop: 8,
+    },
+    errorText: {
+        fontSize: 12,
+        marginTop: 4,
     },
     bottomSpacer: {
         height: 32,

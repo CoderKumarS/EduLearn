@@ -14,7 +14,9 @@ class ProfileService {
     }
 
     async updateUserProfile(userId: number, profileData: Partial<UserProfile>): Promise<UserProfile> {
-        const response = await api.patch(`/users/${userId}/profile/`, profileData);
+        // The backend endpoint is at /api/auth/user/ and doesn't require userId in the path
+        // It uses the authenticated user from the token
+        const response = await api.patch('/auth/user/', profileData);
         return response.data;
     }
 
@@ -152,8 +154,33 @@ class ProfileService {
     }
 
     // User Stats - Fetch from backend API
-    async getUserStats(userId: number) {
+    async getUserStats(userId: number, userRole?: string) {
         try {
+            // Check if user is an instructor
+            if (userRole === 'instructor') {
+                const response = await api.get('/courses/instructor_stats/');
+
+                // Calculate total enrollments
+                const totalEnrollments = response.data.courses?.reduce(
+                    (sum: number, course: any) => sum + (course.enrollment_count || 0),
+                    0
+                ) || 0;
+
+                return {
+                    coursesEnrolled: 0,
+                    coursesCompleted: 0,
+                    totalLearningTime: 0,
+                    averageScore: 0,
+                    streak: 0,
+                    achievements: [],
+                    // Instructor-specific stats
+                    coursesCreated: response.data.total_courses || 0,
+                    totalStudents: response.data.total_students || 0,
+                    totalEnrollments: totalEnrollments,
+                };
+            }
+
+            // Student stats
             const response = await api.get('/progress/user_stats/');
 
             // Map backend response to frontend format
@@ -180,6 +207,9 @@ class ProfileService {
                 achievements: [],
                 totalChapters: 0,
                 completedLessons: 0,
+                coursesCreated: 0,
+                totalStudents: 0,
+                totalEnrollments: 0,
             };
         }
     }

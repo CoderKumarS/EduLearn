@@ -23,15 +23,9 @@ const ProfileScreen: React.FC = () => {
     const { user, isAuthenticated, logout } = useAuth();
     const { theme, setLightTheme, setDarkTheme, setSystemTheme } = useTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedName, setEditedName] = useState(user?.name || '');
-    const [editedEmail, setEditedEmail] = useState(user?.email || '');
     const [stats, setStats] = useState<UserStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(true);
     const [statsError, setStatsError] = useState<string | null>(null);
-    const [editedBio, setEditedBio] = useState(user?.bio || '');
-    const [saving, setSaving] = useState(false);
-    const [emailError, setEmailError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const fadeAnim = useState(new Animated.Value(0))[0];
     const slideAnim = useState(new Animated.Value(50))[0];
@@ -61,7 +55,7 @@ const ProfileScreen: React.FC = () => {
         try {
             setLoadingStats(true);
             setStatsError(null);
-            const userStats = await profileService.getUserStats(user.id);
+            const userStats = await profileService.getUserStats(user.id, user.role);
             setStats(userStats);
         } catch (error) {
             const apiError = handleApiError(error);
@@ -81,68 +75,6 @@ const ProfileScreen: React.FC = () => {
         } finally {
             setRefreshing(false);
         }
-    };
-
-    const validateEmail = (email: string): boolean => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
-
-    const handleEditToggle = () => {
-        setIsEditing(!isEditing);
-        if (isEditing) {
-            // Reset to original values if canceling
-            setEditedName(user?.name || '');
-            setEditedEmail(user?.email || '');
-            setEditedBio(user?.bio || '');
-            setEmailError(null);
-        }
-    };
-
-    const handleEmailChange = (email: string) => {
-        setEditedEmail(email);
-        if (email && !validateEmail(email)) {
-            setEmailError('Please enter a valid email address');
-        } else {
-            setEmailError(null);
-        }
-    };
-
-    const handleSave = async () => {
-        if (!user?.id) return;
-
-        // Validate email
-        if (!validateEmail(editedEmail)) {
-            setEmailError('Please enter a valid email address');
-            return;
-        }
-
-        // Profile update endpoint not available in backend yet
-        alert('Profile editing feature is coming soon! The backend API endpoint is not yet implemented.');
-        setIsEditing(false);
-
-        // TODO: Implement when backend endpoint is ready
-        // try {
-        //     setSaving(true);
-        //     const nameParts = editedName.trim().split(' ');
-        //     const firstName = nameParts[0] || '';
-        //     const lastName = nameParts.slice(1).join(' ') || '';
-        //
-        //     await profileService.updateUserProfile(user.id, {
-        //         firstName,
-        //         lastName,
-        //         email: editedEmail,
-        //         bio: editedBio,
-        //     });
-        //
-        //     alert('Profile updated successfully!');
-        //     setIsEditing(false);
-        // } catch (error) {
-        //     const apiError = handleApiError(error);
-        //     alert(`Failed to update profile: ${apiError.message}`);
-        // } finally {
-        //     setSaving(false);
-        // }
     };
 
     if (!isAuthenticated) {
@@ -211,16 +143,12 @@ const ProfileScreen: React.FC = () => {
                 >
                     <ThemedView variant="default" style={styles.container}>
                         {/* Profile Header */}
-                        <ProfileHeader
-                            user={user}
-                            onEditPress={handleEditToggle}
-                            isEditing={isEditing}
-                        />
+                        <ProfileHeader user={user} />
 
                         {/* Statistics Section */}
                         <ThemedView variant="default" style={styles.section}>
                             <ThemedText variant="default" size="lg" weight="bold" style={styles.sectionTitle}>
-                                Learning Statistics
+                                {user?.role === 'instructor' ? 'Teaching Statistics' : 'Learning Statistics'}
                             </ThemedText>
                             {loadingStats ? (
                                 <View style={styles.statsLoadingContainer}>
@@ -246,103 +174,52 @@ const ProfileScreen: React.FC = () => {
                                     showsHorizontalScrollIndicator={false}
                                     contentContainerStyle={styles.statsContainer}
                                 >
-                                    <StatCard
-                                        label="Enrolled Courses"
-                                        value={stats?.coursesEnrolled || 0}
-                                        icon={<Ionicons name="book-outline" size={24} color="#3B82F6" />}
-                                        iconColor="#3B82F6"
-                                    />
-                                    <StatCard
-                                        label="Completed Courses"
-                                        value={stats?.coursesCompleted || 0}
-                                        icon={<Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />}
-                                        iconColor="#10B981"
-                                    />
-                                    <StatCard
-                                        label="Learning Streak"
-                                        value={`${stats?.streak || 0} days`}
-                                        icon={<Ionicons name="flame-outline" size={24} color="#F59E0B" />}
-                                        iconColor="#F59E0B"
-                                    />
+                                    {user?.role === 'instructor' ? (
+                                        <>
+                                            <StatCard
+                                                label="Courses Created"
+                                                value={stats?.coursesCreated || 0}
+                                                icon={<Ionicons name="book-outline" size={24} color="#3B82F6" />}
+                                                iconColor="#3B82F6"
+                                            />
+                                            <StatCard
+                                                label="Total Students"
+                                                value={stats?.totalStudents || 0}
+                                                icon={<Ionicons name="people-outline" size={24} color="#10B981" />}
+                                                iconColor="#10B981"
+                                            />
+                                            <StatCard
+                                                label="Total Enrollments"
+                                                value={stats?.totalEnrollments || 0}
+                                                icon={<Ionicons name="school-outline" size={24} color="#F59E0B" />}
+                                                iconColor="#F59E0B"
+                                            />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <StatCard
+                                                label="Enrolled Courses"
+                                                value={stats?.coursesEnrolled || 0}
+                                                icon={<Ionicons name="book-outline" size={24} color="#3B82F6" />}
+                                                iconColor="#3B82F6"
+                                            />
+                                            <StatCard
+                                                label="Completed Courses"
+                                                value={stats?.coursesCompleted || 0}
+                                                icon={<Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />}
+                                                iconColor="#10B981"
+                                            />
+                                            <StatCard
+                                                label="Learning Streak"
+                                                value={`${stats?.streak || 0} days`}
+                                                icon={<Ionicons name="flame-outline" size={24} color="#F59E0B" />}
+                                                iconColor="#F59E0B"
+                                            />
+                                        </>
+                                    )}
                                 </ScrollView>
                             )}
                         </ThemedView>
-
-                        {/* Profile Information - Only show in edit mode */}
-                        {isEditing && (
-                            <ThemedView variant="default" style={styles.section}>
-                                <ThemedText variant="default" size="lg" weight="bold" style={styles.sectionTitle}>
-                                    Edit Profile Information
-                                </ThemedText>
-
-                                <ThemedView variant="surface" style={styles.infoCard}>
-                                    <ThemedView style={styles.inputGroup}>
-                                        <ThemedText variant="secondary" size="sm" style={styles.inputLabel}>
-                                            Name *
-                                        </ThemedText>
-                                        <Input
-                                            value={editedName}
-                                            onChangeText={setEditedName}
-                                            placeholder="Enter your name"
-                                            editable={!saving}
-                                        />
-                                    </ThemedView>
-
-                                    <ThemedView style={styles.inputGroup}>
-                                        <ThemedText variant="secondary" size="sm" style={styles.inputLabel}>
-                                            Email *
-                                        </ThemedText>
-                                        <Input
-                                            value={editedEmail}
-                                            onChangeText={handleEmailChange}
-                                            placeholder="Enter your email"
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
-                                            editable={!saving}
-                                        />
-                                        {emailError && (
-                                            <ThemedText
-                                                variant="default"
-                                                size="sm"
-                                                style={[styles.errorText, { color: theme.colors.error }]}
-                                            >
-                                                {emailError}
-                                            </ThemedText>
-                                        )}
-                                    </ThemedView>
-
-                                    <ThemedView style={styles.inputGroup}>
-                                        <ThemedText variant="secondary" size="sm" style={styles.inputLabel}>
-                                            Bio (Optional)
-                                        </ThemedText>
-                                        <Input
-                                            value={editedBio}
-                                            onChangeText={setEditedBio}
-                                            placeholder="Tell us about yourself"
-                                            multiline
-                                            numberOfLines={4}
-                                            editable={!saving}
-                                            style={styles.bioInput}
-                                        />
-                                    </ThemedView>
-
-                                    <View style={styles.editButtonsRow}>
-                                        <Button
-                                            title="Cancel"
-                                            onPress={handleEditToggle}
-                                            disabled={saving}
-                                            style={[styles.editButton, { backgroundColor: theme.colors.surface }]}
-                                        />
-                                        <Button
-                                            title={saving ? 'Saving...' : 'Save Changes'}
-                                            onPress={handleSave}
-                                            disabled={!editedName || !editedEmail || !!emailError || saving}
-                                            style={styles.editButton}
-                                        />
-                                    </View>
-                                </ThemedView>
-                            </ThemedView>
-                        )}
 
                         {/* Quick Actions */}
                         <ThemedView variant="default" style={styles.section}>

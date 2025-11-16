@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     Alert,
     TextInput,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -113,20 +114,37 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
     const handleUpdateChapter = async () => {
         if (!editingChapter) return;
 
+        if (!chapterTitle.trim()) {
+            Alert.alert('Error', 'Please enter a chapter title');
+            return;
+        }
+
         try {
             await chapterService.updateChapter(editingChapter.id, {
+                course: courseId,
                 title: chapterTitle,
                 description: chapterDescription,
+                order: editingChapter.order, // Include the existing order to avoid unique constraint error
             });
 
             Alert.alert('Success', 'Chapter updated successfully');
             setEditingChapter(null);
+            setShowAddChapter(false);
             resetChapterForm();
             loadCourseData();
         } catch (error) {
             const apiError = handleApiError(error);
             Alert.alert('Error', apiError.message);
         }
+    };
+
+    // Check if chapter form has changes
+    const hasChapterChanges = () => {
+        if (!editingChapter) return true; // For new chapters, always enable
+        return (
+            chapterTitle !== editingChapter.title ||
+            chapterDescription !== (editingChapter.description || '')
+        );
     };
 
     const handleDeleteChapter = (chapter: Chapter) => {
@@ -157,6 +175,7 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
         setEditingChapter(chapter);
         setChapterTitle(chapter.title);
         setChapterDescription(chapter.description || '');
+        setShowAddChapter(true);
     };
 
     const resetChapterForm = () => {
@@ -328,55 +347,7 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                 />
                             </View>
 
-                            {/* Add/Edit Chapter Form */}
-                            {(showAddChapter || editingChapter) && (
-                                <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-                                    <ThemedText style={styles.sectionTitle}>
-                                        {editingChapter ? 'Edit Chapter' : 'Add New Chapter'}
-                                    </ThemedText>
 
-                                    <ThemedText style={styles.label}>Title *</ThemedText>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: theme.colors.surface, color: theme.colors.text }]}
-                                        value={chapterTitle}
-                                        onChangeText={setChapterTitle}
-                                        placeholder="Chapter title"
-                                        placeholderTextColor={theme.colors.textSecondary}
-                                    />
-
-                                    <ThemedText style={styles.label}>Description</ThemedText>
-                                    <TextInput
-                                        style={[styles.textArea, { backgroundColor: theme.colors.surface, color: theme.colors.text }]}
-                                        value={chapterDescription}
-                                        onChangeText={setChapterDescription}
-                                        placeholder="Chapter description"
-                                        placeholderTextColor={theme.colors.textSecondary}
-                                        multiline
-                                        numberOfLines={3}
-                                    />
-
-                                    <ThemedText variant="secondary" style={styles.helpText}>
-                                        Note: Topics and quizzes can be managed after creating the chapter using the "Manage Topics" and "Manage Quizzes" buttons.
-                                    </ThemedText>
-
-                                    <View style={styles.buttonRow}>
-                                        <Button
-                                            title="Cancel"
-                                            onPress={() => {
-                                                setShowAddChapter(false);
-                                                setEditingChapter(null);
-                                                resetChapterForm();
-                                            }}
-                                            style={[styles.button, { backgroundColor: theme.colors.surface }]}
-                                        />
-                                        <Button
-                                            title={editingChapter ? 'Update' : 'Add'}
-                                            onPress={editingChapter ? handleUpdateChapter : handleAddChapter}
-                                            style={styles.button}
-                                        />
-                                    </View>
-                                </View>
-                            )}
 
                             {/* Chapters List */}
                             {chapters.map((chapter, index) => (
@@ -501,6 +472,97 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                     )}
                 </ThemedView>
             </ScrollView>
+
+            {/* Add/Edit Chapter Modal */}
+            <Modal
+                visible={showAddChapter}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => {
+                    setShowAddChapter(false);
+                    setEditingChapter(null);
+                    resetChapterForm();
+                }}
+            >
+                <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+                    <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+                        <TouchableOpacity
+                            onPress={() => {
+                                setShowAddChapter(false);
+                                setEditingChapter(null);
+                                resetChapterForm();
+                            }}
+                        >
+                            <ThemedText style={styles.cancelText}>Cancel</ThemedText>
+                        </TouchableOpacity>
+                        <ThemedText style={styles.modalTitle}>
+                            {editingChapter ? 'Edit Chapter' : 'Add Chapter'}
+                        </ThemedText>
+                        <TouchableOpacity
+                            onPress={editingChapter ? handleUpdateChapter : handleAddChapter}
+                            disabled={!hasChapterChanges() || !chapterTitle.trim()}
+                        >
+                            <ThemedText
+                                style={[
+                                    styles.saveText,
+                                    {
+                                        color:
+                                            !hasChapterChanges() || !chapterTitle.trim()
+                                                ? theme.colors.textSecondary
+                                                : theme.colors.primary,
+                                    },
+                                ]}
+                            >
+                                Save
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalContent}>
+                        <View style={styles.formGroup}>
+                            <ThemedText style={styles.label}>Title *</ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    {
+                                        backgroundColor: theme.colors.card,
+                                        color: theme.colors.text,
+                                        borderColor: theme.colors.border,
+                                    },
+                                ]}
+                                value={chapterTitle}
+                                onChangeText={setChapterTitle}
+                                placeholder="Enter chapter title"
+                                placeholderTextColor={theme.colors.textSecondary}
+                            />
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <ThemedText style={styles.label}>Description</ThemedText>
+                            <TextInput
+                                style={[
+                                    styles.textArea,
+                                    {
+                                        backgroundColor: theme.colors.card,
+                                        color: theme.colors.text,
+                                        borderColor: theme.colors.border,
+                                    },
+                                ]}
+                                value={chapterDescription}
+                                onChangeText={setChapterDescription}
+                                placeholder="Enter chapter description"
+                                placeholderTextColor={theme.colors.textSecondary}
+                                multiline
+                                numberOfLines={4}
+                            />
+                        </View>
+
+                        <ThemedText variant="secondary" style={styles.helpText}>
+                            Note: Topics and quizzes can be managed after creating the chapter using the "Manage Topics" and "Manage Quizzes" buttons.
+                        </ThemedText>
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -568,6 +630,7 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 8,
         fontSize: 16,
+        borderWidth: 1,
     },
     textArea: {
         padding: 12,
@@ -575,6 +638,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         minHeight: 100,
         textAlignVertical: 'top',
+        borderWidth: 1,
     },
     buttonRow: {
         flexDirection: 'row',
@@ -740,5 +804,34 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: '#000000ff',
+    },
+    modalContainer: {
+        flex: 1,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        borderBottomWidth: 1,
+    },
+    cancelText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    saveText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    modalContent: {
+        flex: 1,
+        padding: 20,
+    },
+    formGroup: {
+        marginBottom: 16,
     },
 });

@@ -137,11 +137,9 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
         setEnrolling(true);
         try {
             const enrollmentResult = await enrollmentService.enrollInCourse(courseId);
-            console.log('Enrollment result:', enrollmentResult);
 
             // Fetch updated enrollments for the user using getMyCourses
             const userEnrollments = await enrollmentService.getMyCourses();
-            console.log('Updated enrollments:', userEnrollments.length);
             setEnrollments(userEnrollments);
 
             Alert.alert('Success', 'Successfully enrolled in the course!');

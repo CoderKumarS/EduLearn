@@ -7,14 +7,10 @@ import { User } from '../../types/auth';
 
 interface ProfileHeaderProps {
     user: User;
-    onEditPress: () => void;
-    isEditing: boolean;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     user,
-    onEditPress,
-    isEditing,
 }) => {
     const { theme } = useTheme();
     const [imageLoading, setImageLoading] = useState(true);
@@ -48,23 +44,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return (
         <ThemedView variant="surface" style={styles.container}>
-            <View style={styles.header}>
-                <View style={{ flex: 1 }} />
-                {!isEditing && (
-                    <TouchableOpacity
-                        onPress={onEditPress}
-                        style={styles.editButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Edit profile"
-                        accessibilityHint="Tap to edit your profile information"
-                    >
-                        <ThemedText variant="primary" size="md" weight="semibold">
-                            Edit
-                        </ThemedText>
-                    </TouchableOpacity>
-                )}
-            </View>
-
             <View style={styles.avatarContainer}>
                 {user.profile_image && !imageError ? (
                     <View style={styles.avatarImageContainer}>
@@ -142,19 +121,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 3,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    editButton: {
-        padding: 4,
-        minWidth: 44,
-        minHeight: 44,
-        justifyContent: 'center',
-        alignItems: 'flex-end',
     },
     avatarContainer: {
         alignItems: 'center',

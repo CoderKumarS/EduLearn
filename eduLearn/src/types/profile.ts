@@ -30,12 +30,18 @@ export interface UserPreferences {
 }
 
 export interface UserStats {
+    // Student statistics
     coursesEnrolled: number;
     coursesCompleted: number;
     totalLearningTime: number; // in minutes
     averageScore: number;
     streak: number; // consecutive days
     achievements: Achievement[];
+
+    // Instructor statistics
+    coursesCreated?: number;
+    totalStudents?: number;
+    totalEnrollments?: number;
 }
 
 export interface Achievement {
