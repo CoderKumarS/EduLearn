@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import models
 from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -246,6 +247,38 @@ class TopicViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to automatically calculate order and log validation errors"""
+        print(f"Received topic data: {request.data}")
+        
+        # Auto-calculate order if not provided or if there's a conflict
+        data = request.data.copy()
+        chapter_id = data.get('chapter')
+        
+        if chapter_id:
+            # Get the maximum order for this chapter
+            max_order = Topic.objects.filter(chapter_id=chapter_id).aggregate(
+                max_order=models.Max('order')
+            )['max_order']
+            
+            # If order is not provided or is 1 (default), calculate the next available order
+            if 'order' not in data or data.get('order') == 1:
+                next_order = (max_order or 0) + 1
+                data['order'] = next_order
+                print(f"Auto-calculated order: {next_order} (max was {max_order})")
+        
+        serializer = self.get_serializer(data=data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            print(f"Validation error: {e}")
+            if hasattr(e, 'detail'):
+                print(f"Error details: {e.detail}")
+            raise
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def mark_complete(self, request, pk=None):

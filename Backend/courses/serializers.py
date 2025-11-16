@@ -67,23 +67,14 @@ class TopicSerializer(serializers.ModelSerializer):
         return False
     
     def validate_video_url(self, value):
-        """Validate video URL format"""
-        if value and not value.strip():
+        """Validate video URL format - simplified version"""
+        # Allow empty values
+        if not value or not value.strip():
             return ''
         
-        if value:
-            # Basic URL validation - check if it's a valid URL format
-            import re
-            url_pattern = re.compile(
-                r'^https?://'  # http:// or https://
-                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
-                r'localhost|'  # localhost...
-                r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-                r'(?::\d+)?'  # optional port
-                r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-            
-            if not url_pattern.match(value):
-                raise serializers.ValidationError("Invalid video URL format. Please provide a valid URL.")
+        # Basic validation - just check if it starts with http:// or https://
+        if not value.startswith(('http://', 'https://')):
+            raise serializers.ValidationError("Video URL must start with http:// or https://")
         
         return value
 

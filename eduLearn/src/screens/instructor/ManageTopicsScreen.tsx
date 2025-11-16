@@ -275,13 +275,13 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleEditTopic(topic)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.primary + '15' }]}
                                     >
                                         <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleDeleteTopic(topic)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.error + '15' }]}
                                     >
                                         <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                                     </TouchableOpacity>

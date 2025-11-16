@@ -48,12 +48,6 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
     const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
     const [chapterTitle, setChapterTitle] = useState('');
     const [chapterDescription, setChapterDescription] = useState('');
-    const [chapterTopics, setChapterTopics] = useState<string[]>([]);
-    const [newTopic, setNewTopic] = useState('');
-    const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
-    const [editingTopicValue, setEditingTopicValue] = useState('');
-    const [chapterVideoUrl, setChapterVideoUrl] = useState('');
-    const [chapterDuration, setChapterDuration] = useState('');
 
     useEffect(() => {
         loadCourseData();
@@ -106,10 +100,7 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                 course: courseId,
                 title: chapterTitle,
                 description: chapterDescription,
-                topics: chapterTopics,
-                video_url: chapterVideoUrl,
                 order: chapters.length + 1,
-                duration_minutes: parseInt(chapterDuration) || 0,
             });
 
             Alert.alert('Success', 'Chapter added successfully');
@@ -129,9 +120,6 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
             await chapterService.updateChapter(editingChapter.id, {
                 title: chapterTitle,
                 description: chapterDescription,
-                topics: chapterTopics,
-                video_url: chapterVideoUrl,
-                duration_minutes: parseInt(chapterDuration) || 0,
             });
 
             Alert.alert('Success', 'Chapter updated successfully');
@@ -172,49 +160,11 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
         setEditingChapter(chapter);
         setChapterTitle(chapter.title);
         setChapterDescription(chapter.description || '');
-        setChapterTopics(chapter.topics || []);
-        setChapterVideoUrl(chapter.video_url || '');
-        setChapterDuration(chapter.duration_minutes?.toString() || '');
     };
 
     const resetChapterForm = () => {
         setChapterTitle('');
         setChapterDescription('');
-        setChapterTopics([]);
-        setNewTopic('');
-        setChapterVideoUrl('');
-        setChapterDuration('');
-    };
-
-    const addTopic = () => {
-        if (newTopic.trim()) {
-            setChapterTopics([...chapterTopics, newTopic.trim()]);
-            setNewTopic('');
-        }
-    };
-
-    const removeTopic = (index: number) => {
-        setChapterTopics(chapterTopics.filter((_, i) => i !== index));
-    };
-
-    const startEditTopic = (index: number) => {
-        setEditingTopicIndex(index);
-        setEditingTopicValue(chapterTopics[index]);
-    };
-
-    const saveEditTopic = () => {
-        if (editingTopicIndex !== null && editingTopicValue.trim()) {
-            const updatedTopics = [...chapterTopics];
-            updatedTopics[editingTopicIndex] = editingTopicValue.trim();
-            setChapterTopics(updatedTopics);
-            setEditingTopicIndex(null);
-            setEditingTopicValue('');
-        }
-    };
-
-    const cancelEditTopic = () => {
-        setEditingTopicIndex(null);
-        setEditingTopicValue('');
     };
 
     if (loading) {
@@ -408,78 +358,9 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                         numberOfLines={3}
                                     />
 
-                                    <ThemedText style={styles.label}>Video URL</ThemedText>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: theme.colors.surface, color: theme.colors.text }]}
-                                        value={chapterVideoUrl}
-                                        onChangeText={setChapterVideoUrl}
-                                        placeholder="https://youtube.com/watch?v=..."
-                                        placeholderTextColor={theme.colors.textSecondary}
-                                        autoCapitalize="none"
-                                    />
-
-                                    <ThemedText style={styles.label}>Duration (minutes)</ThemedText>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: theme.colors.surface, color: theme.colors.text }]}
-                                        value={chapterDuration}
-                                        onChangeText={setChapterDuration}
-                                        placeholder="30"
-                                        placeholderTextColor={theme.colors.textSecondary}
-                                        keyboardType="numeric"
-                                    />
-
-                                    <ThemedText style={styles.label}>Topics</ThemedText>
-                                    <View style={styles.topicInputContainer}>
-                                        <TextInput
-                                            style={[styles.topicInput, { backgroundColor: theme.colors.surface, color: theme.colors.text }]}
-                                            value={newTopic}
-                                            onChangeText={setNewTopic}
-                                            placeholder="Add a topic"
-                                            placeholderTextColor={theme.colors.textSecondary}
-                                            onSubmitEditing={addTopic}
-                                        />
-                                        <TouchableOpacity
-                                            style={[styles.addTopicButton, { backgroundColor: theme.colors.primary }]}
-                                            onPress={addTopic}
-                                        >
-                                            <Ionicons name="add" size={24} color="#FFFFFF" />
-                                        </TouchableOpacity>
-                                    </View>
-
-                                    {chapterTopics.length > 0 && (
-                                        <View style={styles.topicsList}>
-                                            {chapterTopics.map((topic, index) => (
-                                                <View key={index} style={[styles.topicChip, { backgroundColor: theme.colors.surface }]}>
-                                                    {editingTopicIndex === index ? (
-                                                        <>
-                                                            <TextInput
-                                                                style={[styles.topicEditInput, { color: theme.colors.text }]}
-                                                                value={editingTopicValue}
-                                                                onChangeText={setEditingTopicValue}
-                                                                onSubmitEditing={saveEditTopic}
-                                                                autoFocus
-                                                            />
-                                                            <TouchableOpacity onPress={saveEditTopic} style={styles.topicActionButton}>
-                                                                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-                                                            </TouchableOpacity>
-                                                            <TouchableOpacity onPress={cancelEditTopic} style={styles.topicActionButton}>
-                                                                <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
-                                                            </TouchableOpacity>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <TouchableOpacity onPress={() => startEditTopic(index)} style={styles.topicTextContainer}>
-                                                                <ThemedText style={styles.topicChipText}>{topic}</ThemedText>
-                                                            </TouchableOpacity>
-                                                            <TouchableOpacity onPress={() => removeTopic(index)} style={styles.topicActionButton}>
-                                                                <Ionicons name="close-circle" size={20} color={theme.colors.error} />
-                                                            </TouchableOpacity>
-                                                        </>
-                                                    )}
-                                                </View>
-                                            ))}
-                                        </View>
-                                    )}
+                                    <ThemedText variant="secondary" style={styles.helpText}>
+                                        Note: Topics and quizzes can be managed after creating the chapter using the "Manage Topics" and "Manage Quizzes" buttons.
+                                    </ThemedText>
 
                                     <View style={styles.buttonRow}>
                                         <Button
@@ -511,13 +392,13 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                         <View style={styles.chapterActions}>
                                             <TouchableOpacity
                                                 onPress={() => startEditChapter(chapter)}
-                                                style={styles.actionButton}
+                                                style={[styles.actionButton, { backgroundColor: theme.colors.primary + '15' }]}
                                             >
                                                 <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 onPress={() => handleDeleteChapter(chapter)}
-                                                style={styles.actionButton}
+                                                style={[styles.actionButton, { backgroundColor: theme.colors.error + '15' }]}
                                             >
                                                 <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                                             </TouchableOpacity>
@@ -560,7 +441,7 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                                 style={[styles.manageButton]}
                                                 onPress={() => onNavigateToManageTopics(chapter.id)}
                                             >
-                                                <Ionicons name="document-text-outline" size={18} color="#000000ff" />
+                                                <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
                                                 <ThemedText style={styles.manageButtonText}>Manage Topics</ThemedText>
                                             </TouchableOpacity>
                                         )}
@@ -569,7 +450,7 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                                 style={[styles.manageButton]}
                                                 onPress={() => onNavigateToManageQuiz(chapter.id)}
                                             >
-                                                <Ionicons name="help-circle-outline" size={18} color="#000000ff" />
+                                                <Ionicons name="help-circle-outline" size={16} color={theme.colors.primary} />
                                                 <ThemedText style={styles.manageButtonText}>Manage Quizzes</ThemedText>
                                             </TouchableOpacity>
                                         )}
@@ -712,51 +593,13 @@ const styles = StyleSheet.create({
     addButton: {
         alignSelf: 'flex-start',
     },
-    topicInputContainer: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    topicInput: {
-        flex: 1,
+    helpText: {
+        fontSize: 13,
+        lineHeight: 18,
+        marginTop: 12,
         padding: 12,
         borderRadius: 8,
-        fontSize: 16,
-    },
-    addTopicButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    topicsList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 12,
-    },
-    topicChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        gap: 6,
-    },
-    topicChipText: {
-        fontSize: 12,
-    },
-    topicTextContainer: {
-        flex: 1,
-    },
-    topicEditInput: {
-        flex: 1,
-        fontSize: 12,
-        padding: 0,
-        minWidth: 80,
-    },
-    topicActionButton: {
-        padding: 2,
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
     },
     chapterCard: {
         padding: 20,
@@ -879,7 +722,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
+        paddingVertical: 10,
         paddingHorizontal: 14,
         borderRadius: 12,
         gap: 8,
