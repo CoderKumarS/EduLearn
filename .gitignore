@@ -5,3 +5,5 @@ Becodemy-Mobile-App
 eduLearn2
 edulean/pages
 Markdown
+*.pyc
+__pycache__/

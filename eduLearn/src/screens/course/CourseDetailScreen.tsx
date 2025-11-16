@@ -346,6 +346,8 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
                                     videoUrl={enrolled || isOwnCourse ? chapter.video_url : undefined}
                                     duration={chapter.total_duration}
                                     hasQuiz={Boolean(chapter.quizzes && chapter.quizzes.length > 0)}
+                                    topicCount={chapter.topics?.length || 0}
+                                    quizCount={chapter.quizzes?.length || 0}
                                     isExpanded={Boolean(expandedChapters.has(chapter.id))}
                                     onToggle={() => {
                                         if (enrolled || isOwnCourse) {

@@ -49,8 +49,10 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
         try {
             setLoading(true);
             const data = await topicService.getTopics(chapterId);
+            console.log('Loaded topics for chapter', chapterId, ':', data);
             setTopics(data || []);
         } catch (error) {
+            console.error('Error loading topics:', error);
             handleApiError(error);
             setTopics([]);
         } finally {
@@ -58,7 +60,9 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
         }
     };
 
-    const handleAddTopic = () => {
+    const handleAddTopic = async () => {
+        // Reload topics to ensure we have the latest data
+        await loadTopics();
         setEditingTopic(null);
         setFormData({
             title: '',
@@ -88,16 +92,51 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
             return;
         }
 
+        // Validate content length
+        if (formData.content.trim().length < 10) {
+            Alert.alert('Error', 'Content must be at least 10 characters long');
+            return;
+        }
+
+        // Validate duration
+        const duration = parseInt(formData.duration_minutes);
+        if (isNaN(duration) || duration < 1 || duration > 300) {
+            Alert.alert('Error', 'Duration must be between 1 and 300 minutes');
+            return;
+        }
+
         try {
-            const topicData = {
+            // Reload topics to get the latest data from the server before calculating order
+            const latestTopics = await topicService.getTopics(chapterId);
+            console.log('Latest topics from server:', latestTopics);
+
+            const nextOrder = editingTopic
+                ? editingTopic.order
+                : (Array.isArray(latestTopics) && latestTopics.length > 0
+                    ? Math.max(...latestTopics.map(t => t.order)) + 1
+                    : 1);
+
+            console.log('Calculated next order:', nextOrder);
+
+            // Build topic data, only including optional fields if they have values
+            const topicData: any = {
                 chapter: chapterId,
                 title: formData.title.trim(),
                 content: formData.content.trim(),
-                example: formData.example.trim(),
-                video_url: formData.video_url.trim(),
-                duration_minutes: parseInt(formData.duration_minutes) || 15,
-                order: editingTopic ? editingTopic.order : (Array.isArray(topics) ? topics.length + 1 : 1),
+                duration_minutes: duration,
+                order: nextOrder,
             };
+
+            // Only add optional fields if they have values
+            const exampleValue = formData.example.trim();
+            if (exampleValue) {
+                topicData.example = exampleValue;
+            }
+
+            const videoUrlValue = formData.video_url.trim();
+            if (videoUrlValue) {
+                topicData.video_url = videoUrlValue;
+            }
 
             console.log('Saving topic:', topicData);
 
@@ -113,7 +152,8 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
             await loadTopics();
         } catch (error) {
             console.error('Error saving topic:', error);
-            handleApiError(error);
+            const apiError = handleApiError(error);
+            Alert.alert('Error', apiError.message);
         }
     };
 
@@ -186,9 +226,14 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                     </View>
                 ) : !Array.isArray(topics) || topics.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Ionicons name="document-outline" size={64} color={theme.colors.textSecondary} />
+                        <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
+                            <Ionicons name="document-text-outline" size={48} color={theme.colors.primary} />
+                        </View>
                         <ThemedText style={styles.emptyText}>No topics yet</ThemedText>
-                        <Button title="Add First Topic" onPress={handleAddTopic} />
+                        <ThemedText variant="secondary" style={styles.emptySubtext}>
+                            Start building your chapter by adding topics
+                        </ThemedText>
+                        <Button title="Add First Topic" onPress={handleAddTopic} style={styles.emptyButton} />
                     </View>
                 ) : (
                     topics.map((topic, index) => (
@@ -230,13 +275,13 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleEditTopic(topic)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.primary + '15' }]}
                                     >
                                         <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleDeleteTopic(topic)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.error + '15' }]}
                                     >
                                         <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                                     </TouchableOpacity>
@@ -291,15 +336,20 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                     </View>
 
                     <ScrollView style={styles.modalContent}>
-                        <Input
-                            // label="Title *"
-                            value={formData.title}
-                            onChangeText={(text) => setFormData({ ...formData, title: text })}
-                            placeholder="Enter topic title"
-                        />
+                        <View style={styles.formGroup}>
+                            <ThemedText style={styles.label}>Title *</ThemedText>
+                            <Input
+                                value={formData.title}
+                                onChangeText={(text) => setFormData({ ...formData, title: text })}
+                                placeholder="e.g., Introduction to Variables"
+                            />
+                        </View>
 
                         <View style={styles.formGroup}>
                             <ThemedText style={styles.label}>Content *</ThemedText>
+                            <ThemedText style={styles.helpText}>
+                                Explain the topic in detail (minimum 10 characters)
+                            </ThemedText>
                             <TextInput
                                 style={[
                                     styles.textArea,
@@ -311,7 +361,7 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                                 ]}
                                 value={formData.content}
                                 onChangeText={(text) => setFormData({ ...formData, content: text })}
-                                placeholder="Enter topic content"
+                                placeholder="Describe what students will learn in this topic..."
                                 placeholderTextColor={theme.colors.textSecondary}
                                 multiline
                                 numberOfLines={6}
@@ -319,7 +369,10 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                         </View>
 
                         <View style={styles.formGroup}>
-                            <ThemedText style={styles.label}>Code Example</ThemedText>
+                            <ThemedText style={styles.label}>Code Example (Optional)</ThemedText>
+                            <ThemedText style={styles.helpText}>
+                                Provide a code snippet or example
+                            </ThemedText>
                             <TextInput
                                 style={[
                                     styles.textArea,
@@ -332,28 +385,32 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
                                 ]}
                                 value={formData.example}
                                 onChangeText={(text) => setFormData({ ...formData, example: text })}
-                                placeholder="Enter code example"
+                                placeholder="// Example code here"
                                 placeholderTextColor={theme.colors.textSecondary}
                                 multiline
                                 numberOfLines={4}
                             />
                         </View>
 
-                        <Input
-                            // label="Video URL"
-                            value={formData.video_url}
-                            onChangeText={(text) => setFormData({ ...formData, video_url: text })}
-                            placeholder="https://youtube.com/..."
-                            keyboardType="url"
-                        />
+                        <View style={styles.formGroup}>
+                            <ThemedText style={styles.label}>Video URL (Optional)</ThemedText>
+                            <Input
+                                value={formData.video_url}
+                                onChangeText={(text) => setFormData({ ...formData, video_url: text })}
+                                placeholder="https://youtube.com/watch?v=..."
+                                keyboardType="url"
+                            />
+                        </View>
 
-                        <Input
-                            // label="Duration (minutes)"
-                            value={formData.duration_minutes}
-                            onChangeText={(text) => setFormData({ ...formData, duration_minutes: text })}
-                            placeholder="15"
-                            keyboardType="numeric"
-                        />
+                        <View style={styles.formGroup}>
+                            <ThemedText style={styles.label}>Duration (minutes) *</ThemedText>
+                            <Input
+                                value={formData.duration_minutes}
+                                onChangeText={(text) => setFormData({ ...formData, duration_minutes: text })}
+                                placeholder="15"
+                                keyboardType="numeric"
+                            />
+                        </View>
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
@@ -368,16 +425,17 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
+        padding: 18,
         borderBottomWidth: 1,
     },
     backButton: {
         padding: 8,
+        marginRight: 4,
     },
     headerTitle: {
         flex: 1,
-        fontSize: 20,
-        fontWeight: '600',
+        fontSize: 22,
+        fontWeight: '700',
         marginLeft: 8,
     },
     addButton: {
@@ -385,71 +443,112 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        padding: 16,
+        padding: 18,
     },
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 48,
+        marginTop: 40,
+    },
+    emptyIconContainer: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
     },
     emptyText: {
-        fontSize: 18,
-        marginTop: 16,
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+    emptySubtext: {
+        fontSize: 14,
+        textAlign: 'center',
         marginBottom: 24,
         opacity: 0.7,
     },
+    emptyButton: {
+        minWidth: 160,
+    },
     topicCard: {
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     topicHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     topicInfo: {
         flex: 1,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        gap: 12,
     },
     topicOrder: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginRight: 8,
-        opacity: 0.7,
+        fontSize: 20,
+        fontWeight: '700',
+        opacity: 0.3,
+        minWidth: 32,
     },
     topicTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: '700',
         flex: 1,
+        lineHeight: 24,
     },
     topicActions: {
         flexDirection: 'row',
+        gap: 4,
     },
     iconButton: {
         padding: 8,
+        borderRadius: 8,
     },
     topicContent: {
         fontSize: 14,
-        opacity: 0.8,
-        marginBottom: 8,
+        opacity: 0.7,
+        marginBottom: 12,
+        lineHeight: 20,
+        marginLeft: 44,
     },
     topicMeta: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        gap: 12,
+        marginLeft: 44,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 16,
-        marginTop: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        gap: 6,
     },
     metaText: {
-        fontSize: 12,
-        marginLeft: 4,
-        opacity: 0.7,
+        fontSize: 13,
+        fontWeight: '500',
+        opacity: 0.8,
     },
     modalContainer: {
         flex: 1,
@@ -458,37 +557,53 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
+        padding: 20,
         borderBottomWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
     },
     cancelText: {
         fontSize: 16,
+        fontWeight: '600',
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
+        fontWeight: '700',
     },
     saveText: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     modalContent: {
         flex: 1,
-        padding: 16,
+        padding: 20,
     },
     formGroup: {
-        marginBottom: 16,
+        marginBottom: 20,
     },
     label: {
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 8,
+        fontSize: 15,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    helpText: {
+        fontSize: 13,
+        opacity: 0.6,
+        marginBottom: 10,
+        lineHeight: 18,
     },
     textArea: {
         borderWidth: 1,
-        borderRadius: 8,
-        padding: 12,
+        borderRadius: 12,
+        padding: 14,
         fontSize: 16,
         textAlignVertical: 'top',
+        lineHeight: 22,
     },
 });
