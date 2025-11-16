@@ -1,16 +1,14 @@
 import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, View } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, View, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ThemedView } from '../components/ThemedView';
-import { ThemedText } from '../components/ThemedText';
-import { Button } from '../components/Button';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '../components/common/ThemedView';
+import { ThemedText } from '../components/common/ThemedText';
+import { Button } from '../components/common/Button';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { StudentDashboard } from './StudentDashboard';
-import { InstructorDashboard } from './InstructorDashboard';
-import { AdminDashboardScreen } from './AdminDashboardScreen';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -31,65 +29,91 @@ const HomeScreen: React.FC = () => {
         );
     }
 
-    // If authenticated, show role-specific dashboard
+    // If authenticated, show simple home overview (not full dashboard)
     if (Boolean(isAuthenticated) && user) {
-        const userRole = user.role || 'student';
+        return (
+            <ScrollView style={[styles.scrollView, { backgroundColor: theme.colors.background }]}>
+                <View style={styles.container}>
+                    {/* Welcome Header */}
+                    <View style={[styles.heroSection, { backgroundColor: theme.colors.primary }]}>
+                        <View style={styles.welcomeHeader}>
+                            <View>
+                                <ThemedText style={[styles.welcomeText, { color: '#FFFFFFCC' }]}>
+                                    Welcome back,
+                                </ThemedText>
+                                <ThemedText style={[styles.heroTitle, { color: '#FFFFFF' }]}>
+                                    {user.username}!
+                                </ThemedText>
+                            </View>
+                            {user.profile_image && (
+                                <Image
+                                    source={{ uri: user.profile_image }}
+                                    style={styles.profileImageSmall}
+                                />
+                            )}
+                        </View>
+                    </View>
 
-        // Navigation handlers
-        const handleNavigateBack = () => {
-            // Already on home screen
-        };
+                    {/* Quick Stats */}
+                    <View style={styles.quickStatsSection}>
+                        <ThemedText style={styles.quickStatsTitle}>Quick Overview</ThemedText>
+                        <ThemedText variant="secondary" style={styles.sectionSubtitle}>
+                            View your detailed analytics in the Dashboard tab
+                        </ThemedText>
+                    </View>
 
-        const handleNavigateToCourse = (courseId: string) => {
-            navigation.navigate('CourseDetail', { courseId });
-        };
+                    {/* Quick Actions */}
+                    <View style={styles.actionsSection}>
+                        <TouchableOpacity
+                            style={[styles.actionCard, { backgroundColor: theme.colors.card }]}
+                            onPress={() => {/* Navigation handled by tab bar */ }}
+                        >
+                            <View style={[styles.actionIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+                                <Ionicons name="book-outline" size={32} color={theme.colors.primary} />
+                            </View>
+                            <ThemedText style={styles.actionTitle}>Browse Courses</ThemedText>
+                            <ThemedText variant="secondary" style={styles.actionDescription}>
+                                Explore available courses
+                            </ThemedText>
+                        </TouchableOpacity>
 
-        const handleCreateCourse = () => {
-            navigation.navigate('CreateCourse');
-        };
-
-        switch (userRole) {
-            case 'admin':
-                return <AdminDashboardScreen onNavigateBack={handleNavigateBack} />;
-            case 'instructor':
-                return (
-                    <InstructorDashboard
-                        onNavigateBack={handleNavigateBack}
-                        onNavigateToCourse={handleNavigateToCourse}
-                        onCreateCourse={handleCreateCourse}
-                    />
-                );
-            case 'student':
-            default:
-                return (
-                    <StudentDashboard
-                        onNavigateBack={handleNavigateBack}
-                        onNavigateToCourse={handleNavigateToCourse}
-                    />
-                );
-        }
+                        <TouchableOpacity
+                            style={[styles.actionCard, { backgroundColor: theme.colors.card }]}
+                            onPress={() => {/* Navigation handled by tab bar */ }}
+                        >
+                            <View style={[styles.actionIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+                                <Ionicons name="stats-chart-outline" size={32} color={theme.colors.primary} />
+                            </View>
+                            <ThemedText style={styles.actionTitle}>View Dashboard</ThemedText>
+                            <ThemedText variant="secondary" style={styles.actionDescription}>
+                                See your detailed progress
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
+        );
     }
 
     // If not authenticated, show welcome screen with login/register options
     return (
-        <ScrollView style={styles.scrollView}>
-            <ThemedView variant="default" style={styles.container}>
+        <ScrollView style={[styles.scrollView, { backgroundColor: theme.colors.background }]}>
+            <View style={styles.container}>
                 {/* Hero Section */}
-                <ThemedView variant="default" style={styles.heroSection}>
-                    <ThemedText style={styles.heroIcon}>🎓</ThemedText>
-                    <ThemedText variant="default" size="xxl" weight="bold" style={styles.heroTitle}>
+                <View style={[styles.heroSection, { backgroundColor: theme.colors.primary }]}>
+                    <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF20' }]}>
+                        <Ionicons name="school-outline" size={48} color="#FFFFFF" />
+                    </View>
+                    <ThemedText style={[styles.heroTitle, { color: '#FFFFFF' }]}>
                         Welcome to eduLearn
                     </ThemedText>
-                    <ThemedText variant="secondary" size="lg" style={styles.heroSubtitle}>
-                        Your AI-Powered Learning Companion
+                    <ThemedText style={[styles.heroSubtitle, { color: '#FFFFFFCC' }]}>
+                        Your AI-Powered Learning Platform
                     </ThemedText>
-                    <ThemedText variant="secondary" size="md" style={styles.heroDescription}>
-                        Access thousands of courses, get personalized AI tutoring, and track your learning progress all in one place.
-                    </ThemedText>
-                </ThemedView>
+                </View>
 
                 {/* Auth Buttons */}
-                <ThemedView variant="default" style={styles.authSection}>
+                <View style={styles.authSection}>
                     <Button
                         title="Sign In"
                         onPress={() => navigation.navigate('Login')}
@@ -99,82 +123,91 @@ const HomeScreen: React.FC = () => {
                         style={[styles.registerButtonOutline, { borderColor: theme.colors.primary }]}
                         onPress={() => navigation.navigate('Register')}
                     >
-                        <ThemedText variant="primary" size="md" weight="semibold">
+                        <ThemedText style={[styles.registerButtonText, { color: theme.colors.primary }]}>
                             Create Account
                         </ThemedText>
                     </TouchableOpacity>
-                </ThemedView>
+                </View>
 
                 {/* Features Section */}
-                <ThemedView variant="default" style={styles.section}>
-                    <ThemedText variant="default" size="xl" weight="bold" style={styles.sectionTitle}>
+                <View style={styles.featuresSection}>
+                    <ThemedText style={styles.featuresTitle}>
                         Why Choose eduLearn?
                     </ThemedText>
 
-                    <ThemedView variant="surface" style={styles.featureCard}>
-                        <ThemedText style={styles.featureIcon}>🤖</ThemedText>
+                    <View style={[styles.featureCard, { backgroundColor: theme.colors.card }]}>
+                        <View style={[styles.featureIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+                            <Ionicons name="chatbubbles-outline" size={24} color={theme.colors.primary} />
+                        </View>
                         <View style={styles.featureContent}>
-                            <ThemedText variant="default" size="lg" weight="semibold">
+                            <ThemedText style={styles.featureTitle}>
                                 AI-Powered Tutoring
                             </ThemedText>
-                            <ThemedText variant="secondary" size="sm" style={styles.featureDescription}>
-                                Get instant help from our AI tutor, available 24/7 to answer your questions
+                            <ThemedText variant="secondary" style={styles.featureDescription}>
+                                Get instant help from our AI tutor, available 24/7
                             </ThemedText>
                         </View>
-                    </ThemedView>
+                    </View>
 
-                    <ThemedView variant="surface" style={styles.featureCard}>
-                        <ThemedText style={styles.featureIcon}>📚</ThemedText>
+                    <View style={[styles.featureCard, { backgroundColor: theme.colors.card }]}>
+                        <View style={[styles.featureIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+                            <Ionicons name="library-outline" size={24} color={theme.colors.primary} />
+                        </View>
                         <View style={styles.featureContent}>
-                            <ThemedText variant="default" size="lg" weight="semibold">
+                            <ThemedText style={styles.featureTitle}>
                                 Diverse Course Library
                             </ThemedText>
-                            <ThemedText variant="secondary" size="sm" style={styles.featureDescription}>
-                                Access courses across multiple subjects taught by expert instructors
+                            <ThemedText variant="secondary" style={styles.featureDescription}>
+                                Access courses across multiple subjects
                             </ThemedText>
                         </View>
-                    </ThemedView>
+                    </View>
 
-                    <ThemedView variant="surface" style={styles.featureCard}>
-                        <ThemedText style={styles.featureIcon}>📊</ThemedText>
+                    <View style={[styles.featureCard, { backgroundColor: theme.colors.card }]}>
+                        <View style={[styles.featureIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+                            <Ionicons name="stats-chart-outline" size={24} color={theme.colors.primary} />
+                        </View>
                         <View style={styles.featureContent}>
-                            <ThemedText variant="default" size="lg" weight="semibold">
+                            <ThemedText style={styles.featureTitle}>
                                 Track Your Progress
                             </ThemedText>
-                            <ThemedText variant="secondary" size="sm" style={styles.featureDescription}>
-                                Monitor your learning journey with detailed analytics and insights
+                            <ThemedText variant="secondary" style={styles.featureDescription}>
+                                Monitor your learning with detailed analytics
                             </ThemedText>
                         </View>
-                    </ThemedView>
+                    </View>
 
-                    <ThemedView variant="surface" style={styles.featureCard}>
-                        <ThemedText style={styles.featureIcon}>🎯</ThemedText>
+                    <View style={[styles.featureCard, { backgroundColor: theme.colors.card }]}>
+                        <View style={[styles.featureIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+                            <Ionicons name="bulb-outline" size={24} color={theme.colors.primary} />
+                        </View>
                         <View style={styles.featureContent}>
-                            <ThemedText variant="default" size="lg" weight="semibold">
+                            <ThemedText style={styles.featureTitle}>
                                 Personalized Learning
                             </ThemedText>
-                            <ThemedText variant="secondary" size="sm" style={styles.featureDescription}>
-                                Get course recommendations tailored to your interests and goals
+                            <ThemedText variant="secondary" style={styles.featureDescription}>
+                                Get recommendations tailored to your goals
                             </ThemedText>
                         </View>
-                    </ThemedView>
-                </ThemedView>
+                    </View>
+                </View>
 
                 {/* CTA Section */}
-                <ThemedView variant="surface" style={styles.ctaCard}>
-                    <ThemedText variant="default" size="xl" weight="bold" style={styles.ctaTitle}>
+                <View style={[styles.ctaCard, { backgroundColor: theme.colors.card }]}>
+                    <Ionicons name="rocket-outline" size={48} color={theme.colors.primary} />
+                    <ThemedText style={styles.ctaTitle}>
                         Ready to Start Learning?
                     </ThemedText>
-                    <ThemedText variant="secondary" size="md" style={styles.ctaDescription}>
-                        Join thousands of learners already improving their skills
+                    <ThemedText variant="secondary" style={styles.ctaDescription}>
+                        Join thousands of learners improving their skills
                     </ThemedText>
                     <Button
                         title="Get Started Free"
                         onPress={() => navigation.navigate('Register')}
                         style={styles.ctaButton}
                     />
-                </ThemedView>
-            </ThemedView>
+                </View>
+            </View>
         </ScrollView>
     );
 };
@@ -193,34 +226,37 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        padding: 20,
     },
+    // Hero Section
     heroSection: {
         alignItems: 'center',
-        paddingVertical: 40,
+        paddingVertical: 60,
         paddingHorizontal: 20,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
     },
-    heroIcon: {
-        fontSize: 64,
-        marginBottom: 16,
+    iconCircle: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
     },
     heroTitle: {
+        fontSize: 28,
+        fontWeight: '700',
         textAlign: 'center',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     heroSubtitle: {
+        fontSize: 16,
         textAlign: 'center',
-        marginBottom: 16,
     },
-    heroDescription: {
-        textAlign: 'center',
-        lineHeight: 22,
-        maxWidth: 400,
-    },
+    // Auth Section
     authSection: {
-        marginTop: 32,
-        marginBottom: 48,
         paddingHorizontal: 20,
+        paddingVertical: 32,
     },
     loginButton: {
         marginBottom: 12,
@@ -231,49 +267,144 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 2,
         alignItems: 'center',
-        marginBottom: 8,
     },
-    section: {
-        marginBottom: 32,
+    registerButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
-    sectionTitle: {
+    // Features Section
+    featuresSection: {
+        paddingHorizontal: 20,
+        paddingBottom: 32,
+    },
+    featuresTitle: {
+        fontSize: 22,
+        fontWeight: '700',
         marginBottom: 20,
-        textAlign: 'center',
     },
     featureCard: {
         flexDirection: 'row',
-        padding: 20,
+        padding: 16,
         borderRadius: 12,
-        marginBottom: 16,
-        alignItems: 'flex-start',
+        marginBottom: 12,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    featureIcon: {
-        fontSize: 40,
+    featureIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginRight: 16,
     },
     featureContent: {
         flex: 1,
     },
+    featureTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
     featureDescription: {
-        marginTop: 6,
+        fontSize: 14,
         lineHeight: 20,
     },
+    // CTA Section
     ctaCard: {
-        padding: 32,
-        borderRadius: 12,
-        alignItems: 'center',
+        marginHorizontal: 20,
         marginBottom: 32,
+        padding: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     ctaTitle: {
+        fontSize: 22,
+        fontWeight: '700',
         textAlign: 'center',
-        marginBottom: 12,
+        marginTop: 16,
+        marginBottom: 8,
     },
     ctaDescription: {
+        fontSize: 15,
         textAlign: 'center',
         marginBottom: 24,
     },
     ctaButton: {
         minWidth: 200,
+    },
+    // Authenticated user home styles
+    welcomeHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    welcomeText: {
+        fontSize: 16,
+        marginBottom: 4,
+    },
+    profileImageSmall: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    quickStatsSection: {
+        padding: 20,
+    },
+    quickStatsTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+    },
+    sectionSubtitle: {
+        fontSize: 14,
+        marginTop: 4,
+    },
+    actionsSection: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 12,
+        marginBottom: 20,
+    },
+    actionCard: {
+        flex: 1,
+        padding: 20,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    actionIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    actionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    actionDescription: {
+        fontSize: 12,
+        textAlign: 'center',
     },
 });
 

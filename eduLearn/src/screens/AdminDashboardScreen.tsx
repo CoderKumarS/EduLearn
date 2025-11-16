@@ -3,10 +3,10 @@ import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { ThemedText } from '../components/ThemedText';
-import { StatCard } from '../components/StatCard';
-import { AlertCard } from '../components/AlertCard';
-import { UserListItem } from '../components/UserListItem';
+import { ThemedText } from '../components/common/ThemedText';
+import { StatCard } from '../components/common/StatCard';
+import { AlertCard } from '../components/common/AlertCard';
+import { UserListItem } from '../components/common/UserListItem';
 
 interface AdminDashboardScreenProps {
     onNavigateBack?: () => void;

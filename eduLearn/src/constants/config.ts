@@ -46,14 +46,5 @@ const config: AppConfig = {
     nodeEnv: Constants.expoConfig?.extra?.nodeEnv || 'development',
 };
 
-// Debug logging
-console.log('=== API Configuration ===');
 console.log('Platform:', Platform.OS);
-console.log('API Base URL:', config.apiBaseUrl);
-console.log('API Auth URL:', config.apiAuthUrl);
-console.log('Environment Variables:');
-console.log('  EXPO_PUBLIC_API_BASE_URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
-console.log('  EXPO_PUBLIC_API_AUTH_URL:', process.env.EXPO_PUBLIC_API_AUTH_URL);
-console.log('========================');
-
 export default config;

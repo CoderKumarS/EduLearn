@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemedView, ThemedText } from '../components';
-import { ChatBubble } from '../components/ChatBubble';
+import { ChatBubble } from '../components/common/ChatBubble';
 import { Ionicons } from '@expo/vector-icons';
 import { aiTutorService } from '../services/aiTutorService';
 import { handleApiError } from '../utils/errorHandler';

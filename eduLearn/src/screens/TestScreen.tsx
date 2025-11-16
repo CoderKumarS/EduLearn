@@ -2,8 +2,8 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { ThemedView } from '../components/ThemedView';
-import { ThemedText } from '../components/ThemedText';
+import { ThemedView } from '../components/common/ThemedView';
+import { ThemedText } from '../components/common/ThemedText';
 
 interface TestScreenProps { }
 

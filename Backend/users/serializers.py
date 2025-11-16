@@ -21,9 +21,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for user profile information"""
+    profile_image = serializers.ImageField(required=False)
+    
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'role', 'first_name', 'last_name', 'date_joined')
+        fields = ('id', 'username', 'email', 'role', 'first_name', 'last_name', 
+                  'profile_image', 'bio', 'date_joined')
         read_only_fields = ('id', 'date_joined')
 
 

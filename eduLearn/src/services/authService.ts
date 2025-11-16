@@ -12,12 +12,12 @@ class AuthService {
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
         console.log('=== Login Attempt ===');
         console.log('Auth URL:', this.baseURL);
-        console.log('Full endpoint:', `${this.baseURL}/token/`);
+        console.log('Full endpoint:', `${this.baseURL}/login/`);
         console.log('Username:', credentials.username);
 
         try {
             // Step 1: Get authentication tokens
-            const response = await axios.post(`${this.baseURL}/token/`, {
+            const response = await axios.post(`${this.baseURL}/login/`, {
                 username: credentials.username,
                 password: credentials.password,
             });
@@ -100,7 +100,7 @@ class AuthService {
 
     async refreshToken(refreshToken: string): Promise<AuthResponse> {
         try {
-            const response = await axios.post(`${this.baseURL}/token/refresh/`, {
+            const response = await axios.post(`${this.baseURL}/refresh/`, {
                 refresh: refreshToken,
             });
 
@@ -113,10 +113,18 @@ class AuthService {
         }
     }
 
-    async logout(): Promise<void> {
-        // For JWT tokens, logout is typically handled client-side
-        // by removing the tokens from storage
-        // If your backend has a logout endpoint, you can call it here
+    async logout(refreshToken?: string): Promise<void> {
+        try {
+            // Call backend logout endpoint to blacklist the token
+            if (refreshToken) {
+                await axios.post(`${this.baseURL}/logout/`, {
+                    refresh_token: refreshToken,
+                });
+            }
+        } catch (error) {
+            // Ignore logout errors - token will be removed from client anyway
+            console.log('Logout error (ignored):', error);
+        }
         return Promise.resolve();
     }
 }

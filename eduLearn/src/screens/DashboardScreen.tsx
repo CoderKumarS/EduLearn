@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
-import { ThemedView } from '../components/ThemedView';
-import { ThemedText } from '../components/ThemedText';
+import { ThemedView } from '../components/common/ThemedView';
+import { ThemedText } from '../components/common/ThemedText';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 

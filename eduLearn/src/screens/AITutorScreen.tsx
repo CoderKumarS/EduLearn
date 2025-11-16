@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { ThemedView } from '../components/ThemedView';
-import { ThemedText } from '../components/ThemedText';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
+import { ThemedView } from '../components/common/ThemedView';
+import { ThemedText } from '../components/common/ThemedText';
+import { Input } from '../components/common/Input';
+import { Button } from '../components/common/Button';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 

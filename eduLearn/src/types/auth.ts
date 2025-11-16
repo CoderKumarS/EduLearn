@@ -6,12 +6,12 @@
 export type UserRole = 'student' | 'instructor' | 'admin';
 
 export interface User {
-    id: string;
+    id: number;
     username: string;
     email?: string;
     name?: string;
     role: UserRole;
-    avatar?: string;
+    profile_image?: string;
     bio?: string;
 }
 

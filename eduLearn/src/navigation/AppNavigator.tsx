@@ -2,25 +2,47 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import SplashScreen from '../screens/SplashScreen';
+// Auth screens
+import SplashScreen from '../screens/auth/SplashScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+
+// Course screens
+import CoursesScreen from '../screens/course/CoursesScreen';
+import { CourseDetailScreen } from '../screens/course/CourseDetailScreen';
+import { ChapterDetailScreen } from '../screens/course/ChapterDetailScreen';
+import { TopicDetailScreen } from '../screens/course/TopicDetailScreen';
+
+// Quiz screens
+import { QuizScreen } from '../screens/quiz/QuizScreen';
+import { QuizListScreen } from '../screens/quiz/QuizListScreen';
+import { QuizResultScreen } from '../screens/quiz/QuizResultScreen';
+
+// Instructor screens
+import { CreateCourseScreen } from '../screens/instructor/CreateCourseScreen';
+import { InstructorCoursesScreen } from '../screens/instructor/InstructorCoursesScreen';
+import { ManageCourseScreen } from '../screens/instructor/ManageCourseScreen';
+import { ManageTopicsScreen } from '../screens/instructor/ManageTopicsScreen';
+import { ManageQuizScreen } from '../screens/instructor/ManageQuizScreen';
+import { InstructorDashboard } from '../screens/instructor/InstructorDashboard';
+import { InstructorHomeScreen } from '../screens/instructor/InstructorHomeScreen';
+
+// Student screens
+import { StudentDashboard } from '../screens/student/StudentDashboard';
+import { StudentHomeScreen } from '../screens/student/StudentHomeScreen';
+
+// Common screens
+import ProfileScreen from '../screens/common/ProfileScreen';
+import { ProfileSettingsScreen } from '../screens/common/ProfileSettingsScreen';
+import { AboutUsScreen } from '../screens/common/AboutUsScreen';
+import { ContactUsScreen } from '../screens/common/ContactUsScreen';
+
+// Other screens (not moved yet)
 import TestScreen from '../screens/TestScreen';
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
-import CoursesScreen from '../screens/CoursesScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import { CreateCourseScreen } from '../screens/CreateCourseScreen';
-import { CourseDetailScreen } from '../screens/CourseDetailScreen';
-import { QuizScreen } from '../screens/QuizScreen';
 import { AITutorChatScreen } from '../screens/AITutorChatScreen';
-import { ProfileSettingsScreen } from '../screens/ProfileSettingsScreen';
 import { ContentModerationScreen } from '../screens/ContentModerationScreen';
-import { AboutUsScreen } from '../screens/AboutUsScreen';
-import { ContactUsScreen } from '../screens/ContactUsScreen';
-import { StudentDashboard } from '../screens/StudentDashboard';
-import { InstructorDashboard } from '../screens/InstructorDashboard';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
-import { ThemedText } from '../components/ThemedText';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,9 +54,13 @@ export type RootStackParamList = {
     Register: undefined;
     MainTabs: undefined;
     CreateCourse: undefined;
-    CourseDetail: { courseId: string };
-    Quiz: { quizId: string; courseId: string };
-    AITutorChat: { courseId?: string; topicId?: string };
+    CourseDetail: { courseId: number };
+    ChapterDetail: { chapterId: number };
+    TopicDetail: { topicId: number; chapterId: number };
+    Quiz: { quizId: number; courseId: number };
+    QuizList: { chapterId: number };
+    QuizResult: { attemptId: number };
+    AITutorChat: { courseId?: number; topicId?: string };
     ProfileSettings: undefined;
     ContentModeration: undefined;
     AboutUs: undefined;
@@ -42,6 +68,10 @@ export type RootStackParamList = {
     StudentDashboard: undefined;
     InstructorDashboard: undefined;
     AdminDashboard: undefined;
+    ManageTopics: { chapterId: number };
+    ManageQuiz: { chapterId: number };
+    InstructorCourses: undefined;
+    ManageCourse: { courseId: number };
 };
 
 export type TabParamList = {
@@ -61,9 +91,58 @@ const CreateCourseScreenWrapper: React.FC = () => {
     return (
         <CreateCourseScreen
             onNavigateBack={() => navigation.goBack()}
-            onCourseCreated={() => {
-                navigation.goBack();
+            onCourseCreated={(courseId) => {
+                navigation.replace('ManageCourse', { courseId });
             }}
+        />
+    );
+};
+
+const InstructorCoursesScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+    return (
+        <InstructorCoursesScreen
+            onNavigateToManageCourse={(courseId) => navigation.navigate('ManageCourse', { courseId })}
+            onNavigateToCreateCourse={() => navigation.navigate('CreateCourse')}
+        />
+    );
+};
+
+const ManageCourseScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'ManageCourse'>>();
+
+    return (
+        <ManageCourseScreen
+            courseId={route.params.courseId}
+            onNavigateBack={() => navigation.goBack()}
+            onNavigateToManageTopics={(chapterId) => navigation.navigate('ManageTopics', { chapterId })}
+            onNavigateToManageQuiz={(chapterId) => navigation.navigate('ManageQuiz', { chapterId })}
+        />
+    );
+};
+
+const ManageTopicsScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'ManageTopics'>>();
+
+    return (
+        <ManageTopicsScreen
+            chapterId={route.params.chapterId}
+            onNavigateBack={() => navigation.goBack()}
+        />
+    );
+};
+
+const ManageQuizScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'ManageQuiz'>>();
+
+    return (
+        <ManageQuizScreen
+            chapterId={route.params.chapterId}
+            onNavigateBack={() => navigation.goBack()}
         />
     );
 };
@@ -79,6 +158,40 @@ const CourseDetailScreenWrapper: React.FC = () => {
             onNavigateToQuiz={(quizId) => {
                 navigation.navigate('Quiz', { quizId, courseId: route.params.courseId });
             }}
+            onNavigateToLogin={() => navigation.navigate('Login')}
+            onNavigateToManageCourse={(courseId) => navigation.navigate('ManageCourse', { courseId })}
+            onNavigateToChapter={(chapterId) => navigation.navigate('ChapterDetail', { chapterId })}
+        />
+    );
+};
+
+const ChapterDetailScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'ChapterDetail'>>();
+
+    return (
+        <ChapterDetailScreen
+            chapterId={route.params.chapterId}
+            onNavigateBack={() => navigation.goBack()}
+            onNavigateToTopic={(topicId: number) =>
+                navigation.navigate('TopicDetail', { topicId, chapterId: route.params.chapterId })
+            }
+            onNavigateToQuiz={(quizId: number) =>
+                navigation.navigate('Quiz', { quizId, courseId: 0 })
+            }
+        />
+    );
+};
+
+const TopicDetailScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'TopicDetail'>>();
+
+    return (
+        <TopicDetailScreen
+            topicId={route.params.topicId}
+            chapterId={route.params.chapterId}
+            onNavigateBack={() => navigation.goBack()}
         />
     );
 };
@@ -91,6 +204,32 @@ const QuizScreenWrapper: React.FC = () => {
         <QuizScreen
             quizId={route.params.quizId}
             onNavigateBack={() => navigation.goBack()}
+        />
+    );
+};
+
+const QuizListScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'QuizList'>>();
+
+    return (
+        <QuizListScreen
+            chapterId={route.params.chapterId}
+            onNavigateBack={() => navigation.goBack()}
+            onNavigateToQuiz={(quizId) => navigation.navigate('Quiz', { quizId, courseId: 0 })}
+        />
+    );
+};
+
+const QuizResultScreenWrapper: React.FC = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'QuizResult'>>();
+
+    return (
+        <QuizResultScreen
+            attemptId={route.params.attemptId}
+            onNavigateBack={() => navigation.goBack()}
+            onRetakeQuiz={() => navigation.goBack()}
         />
     );
 };
@@ -151,7 +290,7 @@ const StudentDashboardWrapper: React.FC = () => {
     return (
         <StudentDashboard
             onNavigateBack={() => navigation.goBack()}
-            onNavigateToCourse={(courseId: string) => navigation.navigate('CourseDetail', { courseId })}
+            onNavigateToCourse={(courseId: number) => navigation.navigate('CourseDetail', { courseId })}
         />
     );
 };
@@ -162,7 +301,7 @@ const InstructorDashboardWrapper: React.FC = () => {
     return (
         <InstructorDashboard
             onNavigateBack={() => navigation.goBack()}
-            onNavigateToCourse={(courseId: string) => navigation.navigate('CourseDetail', { courseId })}
+            onNavigateToCourse={(courseId: number) => navigation.navigate('CourseDetail', { courseId })}
             onCreateCourse={() => navigation.navigate('CreateCourse')}
         />
     );
@@ -187,9 +326,9 @@ const DashboardScreenSelector: React.FC = () => {
     if (role === 'admin') {
         return <AdminDashboardScreenWrapper />;
     } else if (role === 'instructor') {
-        return <InstructorDashboardWrapper />;
+        return <InstructorHomeScreen />;
     } else {
-        return <StudentDashboardWrapper />;
+        return <StudentHomeScreen />;
     }
 };
 
@@ -354,12 +493,52 @@ const AppNavigator: React.FC = () => {
                     }}
                 />
                 <Stack.Screen
+                    name="ChapterDetail"
+                    component={ChapterDetailScreenWrapper}
+                    options={{
+                        title: 'Chapter Details',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="TopicDetail"
+                    component={TopicDetailScreenWrapper}
+                    options={{
+                        title: 'Topic',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
                     name="Quiz"
                     component={QuizScreenWrapper}
                     options={{
                         title: 'Quiz',
                         headerShown: Boolean(true),
                         gestureEnabled: Boolean(false),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="QuizList"
+                    component={QuizListScreenWrapper}
+                    options={{
+                        title: 'Quizzes',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="QuizResult"
+                    component={QuizResultScreenWrapper}
+                    options={{
+                        title: 'Quiz Results',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
                         animation: 'slide_from_right',
                     }}
                 />
@@ -439,6 +618,46 @@ const AppNavigator: React.FC = () => {
                     options={{
                         title: 'Admin Dashboard',
                         headerShown: Boolean(true),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="InstructorCourses"
+                    component={InstructorCoursesScreenWrapper}
+                    options={{
+                        title: 'My Courses',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="ManageCourse"
+                    component={ManageCourseScreenWrapper}
+                    options={{
+                        title: 'Manage Course',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="ManageTopics"
+                    component={ManageTopicsScreenWrapper}
+                    options={{
+                        title: 'Manage Topics',
+                        headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="ManageQuiz"
+                    component={ManageQuizScreenWrapper}
+                    options={{
+                        title: 'Manage Quiz',
+                        headerShown: Boolean(false),
                         gestureEnabled: Boolean(true),
                         animation: 'slide_from_right',
                     }}

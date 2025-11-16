@@ -1,18 +1,29 @@
-export { ThemedView } from './ThemedView';
-export { ThemedText } from './ThemedText';
-export { Button } from './Button';
-export { Input } from './Input';
-export { AlertCard } from './AlertCard';
-export { CourseCard } from './CourseCard';
-export { FilterChip } from './FilterChip';
-export { NavigationCard } from './NavigationCard';
-export { ChapterItem } from './ChapterItem';
-export { ChatBubble } from './ChatBubble';
-export { QuizOption } from './QuizOption';
-export { StatCard } from './StatCard';
-export { ErrorBoundary } from './ErrorBoundary';
-export { Picker } from './Picker';
-export { TeamMemberCard } from './TeamMemberCard';
-export { UserListItem } from './UserListItem';
+// Common components
+export { ThemedView } from './common/ThemedView';
+export { ThemedText } from './common/ThemedText';
+export { Button } from './common/Button';
+export { Input } from './common/Input';
+export { AlertCard } from './common/AlertCard';
+export { FilterChip } from './common/FilterChip';
+export { NavigationCard } from './common/NavigationCard';
+export { ChatBubble } from './common/ChatBubble';
+export { StatCard } from './common/StatCard';
+export { ErrorBoundary } from './common/ErrorBoundary';
+export { Picker } from './common/Picker';
+export { TeamMemberCard } from './common/TeamMemberCard';
+export { UserListItem } from './common/UserListItem';
+export { LoadingScreen } from './common/LoadingScreen';
+export { ProfileHeader } from './common/ProfileHeader';
+export { QuickActionButton } from './common/QuickActionButton';
 
-export type { PickerOption } from './Picker';
+// Course components
+export { CourseCard } from './course/CourseCard';
+export { ChapterItem } from './course/ChapterItem';
+
+// Quiz components
+export { QuizOption } from './quiz/QuizOption';
+
+// Instructor components
+export { InstructorCourseCard } from './instructor/InstructorCourseCard';
+
+export type { PickerOption } from './common/Picker';

@@ -13,7 +13,7 @@ class ProfileService {
         }
     }
 
-    async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<UserProfile> {
+    async updateUserProfile(userId: number, profileData: Partial<UserProfile>): Promise<UserProfile> {
         const response = await api.patch(`/users/${userId}/profile/`, profileData);
         return response.data;
     }
@@ -151,11 +151,24 @@ class ProfileService {
         await api.post(`/users/${userId}/reactivate/`);
     }
 
-    // User Stats
-    async getUserStats(userId: string) {
+    // User Stats - Fetch from backend API
+    async getUserStats(userId: number) {
         try {
-            const response = await api.get(`/users/${userId}/stats/`);
-            return response.data;
+            const response = await api.get('/progress/user_stats/');
+
+            // Map backend response to frontend format
+            return {
+                coursesEnrolled: response.data.total_enrolled,
+                coursesCompleted: response.data.recent_progress.filter(
+                    (p: any) => p.completed_lessons === p.total_lessons && p.total_lessons > 0
+                ).length,
+                totalLearningTime: 0, // Not tracked yet
+                averageScore: Math.round(response.data.average_score),
+                streak: 0, // Not tracked yet
+                achievements: [],
+                totalChapters: response.data.total_chapters,
+                completedLessons: response.data.completed_lessons,
+            };
         } catch (error) {
             console.error('Error fetching user stats:', error);
             return {
@@ -165,6 +178,8 @@ class ProfileService {
                 averageScore: 0,
                 streak: 0,
                 achievements: [],
+                totalChapters: 0,
+                completedLessons: 0,
             };
         }
     }
