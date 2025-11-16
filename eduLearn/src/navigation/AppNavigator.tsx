@@ -69,7 +69,7 @@ export type RootStackParamList = {
     InstructorDashboard: undefined;
     AdminDashboard: undefined;
     ManageTopics: { chapterId: number };
-    ManageQuiz: { chapterId: number };
+    ManageQuiz: { chapterId: number; courseId: number };
     InstructorCourses: undefined;
     ManageCourse: { courseId: number };
 };
@@ -118,7 +118,7 @@ const ManageCourseScreenWrapper: React.FC = () => {
             courseId={route.params.courseId}
             onNavigateBack={() => navigation.goBack()}
             onNavigateToManageTopics={(chapterId) => navigation.navigate('ManageTopics', { chapterId })}
-            onNavigateToManageQuiz={(chapterId) => navigation.navigate('ManageQuiz', { chapterId })}
+            onNavigateToManageQuiz={(chapterId, courseId) => navigation.navigate('ManageQuiz', { chapterId, courseId })}
         />
     );
 };
@@ -142,6 +142,7 @@ const ManageQuizScreenWrapper: React.FC = () => {
     return (
         <ManageQuizScreen
             chapterId={route.params.chapterId}
+            courseId={route.params.courseId}
             onNavigateBack={() => navigation.goBack()}
         />
     );

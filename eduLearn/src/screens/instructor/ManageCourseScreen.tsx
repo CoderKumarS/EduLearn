@@ -23,7 +23,7 @@ interface ManageCourseScreenProps {
     courseId: number;
     onNavigateBack: () => void;
     onNavigateToManageTopics?: (chapterId: number) => void;
-    onNavigateToManageQuiz?: (chapterId: number) => void;
+    onNavigateToManageQuiz?: (chapterId: number, courseId: number) => void;
 }
 
 export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
@@ -445,7 +445,7 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                         {onNavigateToManageQuiz && (
                                             <TouchableOpacity
                                                 style={[styles.manageButton]}
-                                                onPress={() => onNavigateToManageQuiz(chapter.id)}
+                                                onPress={() => onNavigateToManageQuiz(chapter.id, courseId)}
                                             >
                                                 <Ionicons name="help-circle-outline" size={16} color={theme.colors.primary} />
                                                 <ThemedText style={styles.manageButtonText}>Manage Quizzes</ThemedText>

@@ -21,11 +21,13 @@ import { handleApiError } from '../../utils/errorHandler';
 
 interface ManageQuizScreenProps {
     chapterId: number;
+    courseId: number;
     onNavigateBack: () => void;
 }
 
 export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
     chapterId,
+    courseId,
     onNavigateBack,
 }) => {
     const { theme } = useTheme();
@@ -155,6 +157,7 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
 
         try {
             const quizData = {
+                course: courseId,
                 chapter: chapterId,
                 title: formData.title,
                 description: formData.description,
