@@ -55,13 +55,10 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
 
     const loadCourseData = async () => {
         try {
-            const [courseData, chaptersData] = await Promise.all([
-                courseService.getCourse(courseId),
-                chapterService.getChapters({ course: courseId }),
-            ]);
-
+            const courseData = await courseService.getCourse(courseId);
             setCourse(courseData);
-            setChapters(chaptersData);
+            // Use chapters from course data which includes quizzes and topics
+            setChapters(courseData.chapters || []);
             setCourseTitle(courseData.title);
             setCourseDescription(courseData.description);
         } catch (error) {
@@ -469,27 +466,38 @@ export const ManageCourseScreen: React.FC<ManageCourseScreenProps> = ({
                                     Quizzes are automatically created for each chapter. You can manage quiz questions and options through the chapter's quiz.
                                 </ThemedText>
 
-                                {chapters.map((chapter, index) => (
-                                    <View key={chapter.id} style={[styles.quizItem, { backgroundColor: theme.colors.surface }]}>
-                                        <View style={styles.quizInfo}>
-                                            <ThemedText style={styles.quizTitle}>
-                                                Chapter {index + 1}: {chapter.title}
-                                            </ThemedText>
-                                            <ThemedText variant="secondary" style={styles.quizSubtitle}>
-                                                {chapter.quizzes && chapter.quizzes.length > 0
-                                                    ? `${chapter.quizzes[0].questions?.length || 0} questions`
-                                                    : 'No quiz yet'}
-                                            </ThemedText>
+                                {chapters.map((chapter, index) => {
+                                    const hasQuizzes = Array.isArray(chapter.quizzes) && chapter.quizzes.length > 0;
+                                    const questionCount = hasQuizzes ? (chapter.quizzes?.[0]?.questions?.length || 0) : 0;
+
+                                    return (
+                                        <View key={chapter.id} style={[styles.quizItem, { backgroundColor: theme.colors.surface }]}>
+                                            <View style={styles.quizInfo}>
+                                                <ThemedText style={styles.quizTitle}>
+                                                    Chapter {index + 1}: {chapter.title}
+                                                </ThemedText>
+                                                <ThemedText variant="secondary" style={styles.quizSubtitle}>
+                                                    {hasQuizzes
+                                                        ? `${chapter.quizzes?.length || 0} ${chapter.quizzes?.length === 1 ? 'Quiz' : 'Quizzes'} • ${questionCount} ${questionCount === 1 ? 'question' : 'questions'}`
+                                                        : 'No quiz yet'}
+                                                </ThemedText>
+                                            </View>
+                                            <TouchableOpacity
+                                                style={[styles.manageQuizButton, { backgroundColor: hasQuizzes ? theme.colors.primary : theme.colors.textSecondary }]}
+                                                onPress={() => {
+                                                    if (hasQuizzes) {
+                                                        Alert.alert('Quiz Management', 'Quiz editor coming soon');
+                                                    } else {
+                                                        Alert.alert('No Quiz', 'Create a quiz for this chapter first');
+                                                    }
+                                                }}
+                                            >
+                                                <Ionicons name={hasQuizzes ? "create-outline" : "add-circle-outline"} size={18} color="#FFFFFF" />
+                                                <ThemedText style={styles.manageQuizText}>{hasQuizzes ? 'Manage' : 'Create'}</ThemedText>
+                                            </TouchableOpacity>
                                         </View>
-                                        <TouchableOpacity
-                                            style={[styles.manageQuizButton, { backgroundColor: theme.colors.primary }]}
-                                            onPress={() => Alert.alert('Quiz Management', 'Quiz editor coming soon')}
-                                        >
-                                            <Ionicons name="create-outline" size={18} color="#FFFFFF" />
-                                            <ThemedText style={styles.manageQuizText}>Manage</ThemedText>
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
+                                    );
+                                })}
                             </View>
                         </View>
                     )}

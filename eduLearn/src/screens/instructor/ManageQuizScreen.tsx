@@ -11,11 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { ThemedText } from '../../components/common/ThemedText';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { quizService, questionService, optionService } from '../../services/quizService';
-import { Quiz, Question, Option } from '../../types/course';
+import { Quiz, Question } from '../../types/course';
 import { handleApiError } from '../../utils/errorHandler';
 
 interface ManageQuizScreenProps {
@@ -28,6 +29,7 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
     onNavigateBack,
 }) => {
     const { theme } = useTheme();
+    const { logout } = useAuth();
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -65,9 +67,35 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
         try {
             setLoading(true);
             const data = await quizService.getQuizzes({ chapter: chapterId });
-            setQuizzes(data.sort((a, b) => a.order - b.order));
-        } catch (error) {
-            handleApiError(error);
+
+            // Handle both paginated and non-paginated responses
+            const quizzesList = Array.isArray(data)
+                ? data
+                : (data && typeof data === 'object' && 'results' in data ? (data as any).results : []);
+
+            setQuizzes(quizzesList.sort((a: Quiz, b: Quiz) => a.order - b.order));
+        } catch (error: any) {
+            console.error('Error loading quizzes:', error);
+            const apiError = handleApiError(error);
+
+            // Handle authentication errors
+            if (apiError.status === 401) {
+                Alert.alert(
+                    'Session Expired',
+                    'Your session has expired. Please log in again.',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => {
+                                logout();
+                                onNavigateBack();
+                            },
+                        },
+                    ]
+                );
+            } else {
+                Alert.alert('Error', apiError.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -191,10 +219,36 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
         setSelectedQuiz(quiz);
         try {
             const questionsData = await questionService.getQuestions({ quiz: quiz.id });
-            setQuestions(questionsData.sort((a, b) => a.order - b.order));
+
+            // Handle both paginated and non-paginated responses
+            const questionsList = Array.isArray(questionsData)
+                ? questionsData
+                : (questionsData && typeof questionsData === 'object' && 'results' in questionsData ? (questionsData as any).results : []);
+
+            setQuestions(questionsList.sort((a: Question, b: Question) => a.order - b.order));
             setShowQuestionsModal(true);
-        } catch (error) {
-            handleApiError(error);
+        } catch (error: any) {
+            console.error('Error loading questions:', error);
+            const apiError = handleApiError(error);
+
+            // Handle authentication errors
+            if (apiError.status === 401) {
+                Alert.alert(
+                    'Session Expired',
+                    'Your session has expired. Please log in again.',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => {
+                                logout();
+                                onNavigateBack();
+                            },
+                        },
+                    ]
+                );
+            } else {
+                Alert.alert('Error', apiError.message);
+            }
         }
     };
 
@@ -211,6 +265,23 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
             { option_text: '', is_correct: false },
         ]);
         setShowQuestionForm(true);
+    };
+
+    const handleQuestionTypeChange = (type: 'multiple_choice' | 'true_false' | 'short_answer') => {
+        setQuestionFormData({ ...questionFormData, question_type: type });
+
+        // Initialize options based on question type
+        if (type === 'true_false') {
+            setOptions([
+                { option_text: 'True', is_correct: false },
+                { option_text: 'False', is_correct: false },
+            ]);
+        } else if (type === 'multiple_choice') {
+            setOptions([
+                { option_text: '', is_correct: false },
+                { option_text: '', is_correct: false },
+            ]);
+        }
     };
 
     const handleEditQuestion = async (question: Question) => {
@@ -249,6 +320,13 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
             }
         }
 
+        if (questionFormData.question_type === 'true_false') {
+            if (!options.some(opt => opt.is_correct)) {
+                Alert.alert('Validation Error', 'Please select the correct answer (True or False)');
+                return;
+            }
+        }
+
         try {
             const questionData = {
                 quiz: selectedQuiz!.id,
@@ -273,7 +351,7 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
                 savedQuestion = await questionService.createQuestion(questionData);
             }
 
-            // Create options for multiple choice questions
+            // Create options for multiple choice and true/false questions
             if (questionFormData.question_type === 'multiple_choice') {
                 const validOptions = options.filter(opt => opt.option_text.trim());
                 for (let i = 0; i < validOptions.length; i++) {
@@ -284,6 +362,20 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
                         order: i + 1,
                     });
                 }
+            } else if (questionFormData.question_type === 'true_false') {
+                // Create True and False options
+                await optionService.createOption({
+                    question: savedQuestion.id,
+                    option_text: 'True',
+                    is_correct: options[0]?.is_correct || false,
+                    order: 1,
+                });
+                await optionService.createOption({
+                    question: savedQuestion.id,
+                    option_text: 'False',
+                    is_correct: options[1]?.is_correct || false,
+                    order: 2,
+                });
             }
 
             setShowQuestionForm(false);
@@ -393,19 +485,19 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
                                 <View style={styles.quizActions}>
                                     <TouchableOpacity
                                         onPress={() => handleManageQuestions(quiz)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.info + '15' }]}
                                     >
                                         <Ionicons name="list-outline" size={20} color={theme.colors.text} />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleEditQuiz(quiz)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.primary + '15' }]}
                                     >
                                         <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleDeleteQuiz(quiz)}
-                                        style={styles.iconButton}
+                                        style={[styles.iconButton, { backgroundColor: theme.colors.error + '15' }]}
                                     >
                                         <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                                     </TouchableOpacity>
@@ -417,18 +509,20 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
                                 </ThemedText>
                             )}
                             <View style={styles.quizMeta}>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
-                                    <ThemedText style={styles.metaText}>{quiz.time_limit_minutes} min</ThemedText>
+                                <View style={[styles.metaItem, { backgroundColor: theme.colors.primary + '15' }]}>
+                                    <Ionicons name="time-outline" size={16} color={theme.colors.primary} />
+                                    <ThemedText style={[styles.metaText, { color: theme.colors.primary }]}>{quiz.time_limit_minutes} min</ThemedText>
                                 </View>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="help-circle-outline" size={16} color={theme.colors.textSecondary} />
-                                    <ThemedText style={styles.metaText}>{quiz.question_count || 0} questions</ThemedText>
+                                <View style={[styles.metaItem, { backgroundColor: theme.colors.success + '15' }]}>
+                                    <Ionicons name="help-circle-outline" size={16} color={theme.colors.success} />
+                                    <ThemedText style={[styles.metaText, { color: theme.colors.success }]}>
+                                        {quiz.questions?.length || quiz.question_count || 0} questions
+                                    </ThemedText>
                                 </View>
                                 {quiz.is_required && (
-                                    <View style={styles.metaItem}>
+                                    <View style={[styles.metaItem, { backgroundColor: theme.colors.warning + '15' }]}>
                                         <Ionicons name="star" size={16} color={theme.colors.warning} />
-                                        <ThemedText style={styles.metaText}>Required</ThemedText>
+                                        <ThemedText style={[styles.metaText, { color: theme.colors.warning }]}>Required</ThemedText>
                                     </View>
                                 )}
                             </View>
@@ -555,13 +649,18 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
             >
                 <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
                     <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-                        <TouchableOpacity onPress={() => setShowQuestionsModal(false)}>
-                            <ThemedText style={styles.cancelText}>Close</ThemedText>
+                        <TouchableOpacity onPress={() => setShowQuestionsModal(false)} style={styles.headerButton}>
+                            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                         </TouchableOpacity>
-                        <ThemedText style={styles.modalTitle}>
-                            {selectedQuiz?.title} - Questions
-                        </ThemedText>
-                        <TouchableOpacity onPress={handleAddQuestion}>
+                        <View style={styles.headerTitleContainer}>
+                            <ThemedText style={styles.modalTitle} numberOfLines={1}>
+                                Questions
+                            </ThemedText>
+                            <ThemedText variant="secondary" style={styles.modalSubtitle} numberOfLines={1}>
+                                {selectedQuiz?.title}
+                            </ThemedText>
+                        </View>
+                        <TouchableOpacity onPress={handleAddQuestion} style={styles.headerButton}>
                             <Ionicons name="add-circle" size={28} color={theme.colors.primary} />
                         </TouchableOpacity>
                     </View>
@@ -755,6 +854,46 @@ export const ManageQuizScreen: React.FC<ManageQuizScreenProps> = ({
                             />
                         </View>
 
+                        {questionFormData.question_type === 'true_false' && (
+                            <View style={styles.formGroup}>
+                                <ThemedText style={styles.label}>Correct Answer *</ThemedText>
+                                <View style={styles.radioGroup}>
+                                    <TouchableOpacity
+                                        style={styles.radioOption}
+                                        onPress={() => {
+                                            setOptions([
+                                                { option_text: 'True', is_correct: true },
+                                                { option_text: 'False', is_correct: false },
+                                            ]);
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={options[0]?.is_correct ? 'radio-button-on' : 'radio-button-off'}
+                                            size={24}
+                                            color={theme.colors.primary}
+                                        />
+                                        <ThemedText style={styles.radioLabel}>True</ThemedText>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.radioOption}
+                                        onPress={() => {
+                                            setOptions([
+                                                { option_text: 'True', is_correct: false },
+                                                { option_text: 'False', is_correct: true },
+                                            ]);
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={options[1]?.is_correct ? 'radio-button-on' : 'radio-button-off'}
+                                            size={24}
+                                            color={theme.colors.primary}
+                                        />
+                                        <ThemedText style={styles.radioLabel}>False</ThemedText>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
+
                         {questionFormData.question_type === 'multiple_choice' && (
                             <View style={styles.formGroup}>
                                 <View style={styles.optionsHeader}>
@@ -848,57 +987,102 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     quizCard: {
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     quizHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     quizInfo: {
         flex: 1,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        gap: 12,
     },
     quizOrder: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginRight: 8,
-        opacity: 0.7,
+        fontSize: 20,
+        fontWeight: '700',
+        opacity: 0.3,
+        minWidth: 32,
     },
     quizTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: '700',
         flex: 1,
+        lineHeight: 24,
     },
     quizActions: {
         flexDirection: 'row',
+        gap: 4,
     },
     iconButton: {
         padding: 8,
+        borderRadius: 8,
     },
     quizDescription: {
         fontSize: 14,
-        opacity: 0.8,
-        marginBottom: 8,
+        opacity: 0.7,
+        marginBottom: 12,
+        lineHeight: 20,
+        marginLeft: 44,
     },
     quizMeta: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        gap: 8,
+        marginLeft: 44,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 16,
-        marginTop: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        gap: 6,
     },
     metaText: {
-        fontSize: 12,
-        marginLeft: 4,
-        opacity: 0.7,
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    manageQuestionsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        marginTop: 16,
+        gap: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    manageQuestionsText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
     modalContainer: {
         flex: 1,
@@ -907,19 +1091,41 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
+        padding: 18,
         borderBottomWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    headerButton: {
+        padding: 4,
+        minWidth: 40,
+    },
+    headerTitleContainer: {
+        flex: 1,
+        alignItems: 'center',
+        paddingHorizontal: 12,
     },
     cancelText: {
         fontSize: 16,
+        fontWeight: '600',
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
+        fontWeight: '700',
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        marginTop: 2,
     },
     saveText: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     modalContent: {
         flex: 1,
@@ -950,39 +1156,56 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     questionCard: {
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 12,
+        padding: 18,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     questionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     questionInfo: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'flex-start',
+        gap: 10,
     },
     questionOrder: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginRight: 8,
-        opacity: 0.7,
+        fontSize: 18,
+        fontWeight: '700',
+        opacity: 0.4,
+        minWidth: 36,
     },
     questionText: {
-        fontSize: 14,
-        fontWeight: '500',
+        fontSize: 16,
+        fontWeight: '600',
         flex: 1,
+        lineHeight: 22,
     },
     questionActions: {
         flexDirection: 'row',
+        gap: 4,
     },
     questionMeta: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 8,
+        marginLeft: 46,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     radioGroup: {
         gap: 12,

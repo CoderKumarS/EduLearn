@@ -49,7 +49,6 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
         try {
             setLoading(true);
             const data = await topicService.getTopics(chapterId);
-            console.log('Loaded topics for chapter', chapterId, ':', data);
             setTopics(data || []);
         } catch (error) {
             console.error('Error loading topics:', error);
@@ -108,15 +107,12 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
         try {
             // Reload topics to get the latest data from the server before calculating order
             const latestTopics = await topicService.getTopics(chapterId);
-            console.log('Latest topics from server:', latestTopics);
 
             const nextOrder = editingTopic
                 ? editingTopic.order
                 : (Array.isArray(latestTopics) && latestTopics.length > 0
                     ? Math.max(...latestTopics.map(t => t.order)) + 1
                     : 1);
-
-            console.log('Calculated next order:', nextOrder);
 
             // Build topic data, only including optional fields if they have values
             const topicData: any = {
@@ -137,8 +133,6 @@ export const ManageTopicsScreen: React.FC<ManageTopicsScreenProps> = ({
             if (videoUrlValue) {
                 topicData.video_url = videoUrlValue;
             }
-
-            console.log('Saving topic:', topicData);
 
             if (editingTopic) {
                 await topicService.updateTopic(editingTopic.id, topicData);
