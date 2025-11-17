@@ -37,7 +37,7 @@ export const Picker: React.FC<PickerProps> = ({
     const { theme } = useTheme();
     const [isModalVisible, setIsModalVisible] = useState(false);
 
-    const selectedOption = options.find((option) => option.value === value);
+    const selectedOption = options?.find((option) => option.value === value);
 
     const handleSelect = (optionValue: string) => {
         onValueChange(optionValue);
@@ -119,7 +119,7 @@ export const Picker: React.FC<PickerProps> = ({
                                 </View>
 
                                 <FlatList
-                                    data={options}
+                                    data={options || []}
                                     keyExtractor={(item) => item.value}
                                     renderItem={({ item }) => (
                                         <TouchableOpacity

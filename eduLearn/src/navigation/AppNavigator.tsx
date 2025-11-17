@@ -492,7 +492,7 @@ const AppNavigator: React.FC = () => {
                     component={CreateCourseScreenWrapper}
                     options={{
                         title: 'Create Course',
-                        headerShown: Boolean(true),
+                        headerShown: false,
                         gestureEnabled: Boolean(true),
                         animation: 'slide_from_right',
                     }}

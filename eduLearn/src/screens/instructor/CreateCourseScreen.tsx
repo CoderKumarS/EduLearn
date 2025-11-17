@@ -30,7 +30,7 @@ export const CreateCourseScreen: React.FC<CreateCourseScreenProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Programming');
-  const [difficultyLevel, setDifficultyLevel] = useState('beginner');
+  const [difficultyLevel, setDifficultyLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [price, setPrice] = useState('0');
   const [isFree, setIsFree] = useState(true);
   const [durationHours, setDurationHours] = useState('0');
@@ -129,16 +129,16 @@ export const CreateCourseScreen: React.FC<CreateCourseScreenProps> = ({
 
             <ThemedText style={styles.label}>Category</ThemedText>
             <Picker
-              selectedValue={category}
+              value={category}
               onValueChange={setCategory}
-              items={categories.map(cat => ({ label: cat, value: cat }))}
+              options={categories.map(cat => ({ label: cat, value: cat }))}
             />
 
             <ThemedText style={styles.label}>Difficulty Level</ThemedText>
             <Picker
-              selectedValue={difficultyLevel}
-              onValueChange={setDifficultyLevel}
-              items={difficultyLevels}
+              value={difficultyLevel}
+              onValueChange={(value) => setDifficultyLevel(value as 'beginner' | 'intermediate' | 'advanced')}
+              options={difficultyLevels}
             />
 
             <ThemedText style={styles.label}>Duration (hours)</ThemedText>
