@@ -64,6 +64,14 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
 
     const loadCourseData = async () => {
         try {
+            // Check if user is authenticated before making API calls
+            if (!isAuthenticated) {
+                // For unauthenticated users, show a login prompt
+                setLoading(false);
+                setCourse(null);
+                return;
+            }
+
             const [courseData, quizzesData, enrollCount] = await Promise.all([
                 courseService.getCourse(courseId),
                 quizService.quiz.getQuizzes({ course: courseId }),
