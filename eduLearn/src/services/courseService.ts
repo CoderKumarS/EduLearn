@@ -8,6 +8,7 @@ import {
     UserStats,
     InstructorStats,
 } from '../types/course';
+import { RecentCourse, TopCoursesByMetric } from '../types/instructor';
 
 class CourseService {
     // Course endpoints
@@ -121,6 +122,62 @@ class CourseService {
     async getDashboardStats(): Promise<any> {
         const response = await api.get('/dashboard/stats/');
         return response.data;
+    }
+
+    /**
+     * Get courses from other instructors (excluding current instructor)
+     * @param limit - Maximum number of courses to return (default: 6)
+     */
+    async getOtherInstructorsCourses(limit: number = 6): Promise<RecentCourse[]> {
+        try {
+            // This data comes from the instructor dashboard endpoint
+            // For standalone use, we could filter published courses
+            const response = await api.get('/courses/', {
+                params: {
+                    is_published: true,
+                    ordering: '-created_at',
+                    limit,
+                },
+            });
+            return response.data.results || response.data;
+        } catch (error) {
+            console.error('Error fetching other instructors courses:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get platform top ranking courses
+     * Returns courses ranked by enrollment and rating
+     */
+    async getPlatformTopCourses(): Promise<TopCoursesByMetric> {
+        try {
+            // Fetch top courses by enrollment
+            const byEnrollmentResponse = await api.get('/courses/', {
+                params: {
+                    is_published: true,
+                    ordering: '-enrollment_count',
+                    limit: 5,
+                },
+            });
+
+            // Fetch top courses by rating
+            const byRatingResponse = await api.get('/courses/', {
+                params: {
+                    is_published: true,
+                    ordering: '-average_rating',
+                    limit: 5,
+                },
+            });
+
+            return {
+                by_enrollment: byEnrollmentResponse.data.results || byEnrollmentResponse.data,
+                by_rating: byRatingResponse.data.results || byRatingResponse.data,
+            };
+        } catch (error) {
+            console.error('Error fetching platform top courses:', error);
+            throw error;
+        }
     }
 }
 

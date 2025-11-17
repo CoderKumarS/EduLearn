@@ -23,3 +23,6 @@ export * from './profile';
 
 // Environment types
 export * from './env';
+
+// Instructor types
+export * from './instructor';

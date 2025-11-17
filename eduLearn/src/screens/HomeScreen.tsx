@@ -9,6 +9,7 @@ import { Button } from '../components/common/Button';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { InstructorHomeContent } from '../components/instructor/InstructorHomeContent';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -29,8 +30,14 @@ const HomeScreen: React.FC = () => {
         );
     }
 
-    // If authenticated, show simple home overview (not full dashboard)
+    // If authenticated, show role-based content
     if (Boolean(isAuthenticated) && user) {
+        // Show instructor dashboard for instructors
+        if (user.role === 'instructor') {
+            return <InstructorHomeContent />;
+        }
+
+        // Show simple overview for students and other roles
         return (
             <ScrollView style={[styles.scrollView, { backgroundColor: theme.colors.background }]}>
                 <View style={styles.container}>

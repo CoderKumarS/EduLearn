@@ -119,10 +119,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                             <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
                             <View style={styles.demoTextContainer}>
                                 <ThemedText variant="secondary" style={styles.demoText}>
-                                    Demo: student1 / password123
+                                    Demo: john_doe / password123
                                 </ThemedText>
                                 <ThemedText variant="secondary" style={styles.demoText}>
-                                    or instructor1 / password123
+                                    or alice_johnson / password123
                                 </ThemedText>
                             </View>
                         </View>

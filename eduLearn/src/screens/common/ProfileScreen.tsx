@@ -180,19 +180,19 @@ const ProfileScreen: React.FC = () => {
                                                 label="Courses Created"
                                                 value={stats?.coursesCreated || 0}
                                                 icon={<Ionicons name="book-outline" size={24} color="#3B82F6" />}
-                                                iconColor="#3B82F6"
+                                                accentColor="#3B82F6"
                                             />
                                             <StatCard
                                                 label="Total Students"
                                                 value={stats?.totalStudents || 0}
                                                 icon={<Ionicons name="people-outline" size={24} color="#10B981" />}
-                                                iconColor="#10B981"
+                                                accentColor="#10B981"
                                             />
                                             <StatCard
                                                 label="Total Enrollments"
                                                 value={stats?.totalEnrollments || 0}
                                                 icon={<Ionicons name="school-outline" size={24} color="#F59E0B" />}
-                                                iconColor="#F59E0B"
+                                                accentColor="#F59E0B"
                                             />
                                         </>
                                     ) : (
@@ -201,19 +201,19 @@ const ProfileScreen: React.FC = () => {
                                                 label="Enrolled Courses"
                                                 value={stats?.coursesEnrolled || 0}
                                                 icon={<Ionicons name="book-outline" size={24} color="#3B82F6" />}
-                                                iconColor="#3B82F6"
+                                                accentColor="#3B82F6"
                                             />
                                             <StatCard
                                                 label="Completed Courses"
                                                 value={stats?.coursesCompleted || 0}
                                                 icon={<Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />}
-                                                iconColor="#10B981"
+                                                accentColor="#10B981"
                                             />
                                             <StatCard
                                                 label="Learning Streak"
                                                 value={`${stats?.streak || 0} days`}
                                                 icon={<Ionicons name="flame-outline" size={24} color="#F59E0B" />}
-                                                iconColor="#F59E0B"
+                                                accentColor="#F59E0B"
                                             />
                                         </>
                                     )}
@@ -262,117 +262,155 @@ const ProfileScreen: React.FC = () => {
 
                         {/* Theme Settings */}
                         <ThemedView variant="default" style={styles.section}>
-                            <ThemedText variant="default" size="lg" weight="bold" style={styles.sectionTitle}>
-                                Theme Settings
-                            </ThemedText>
+                            <View style={styles.sectionHeader}>
+                                <ThemedText variant="default" size="lg" weight="bold">
+                                    Appearance
+                                </ThemedText>
+                                <ThemedText variant="secondary" size="sm" style={styles.sectionSubtitle}>
+                                    Customize your viewing experience
+                                </ThemedText>
+                            </View>
 
                             <ThemedView variant="surface" style={styles.themeCard}>
-                                <ThemedView style={styles.themeButtons}>
+                                <View style={styles.themeButtons}>
                                     <TouchableOpacity
                                         style={[
                                             styles.themeButton,
+                                            theme.mode === 'light' && styles.themeButtonActive,
                                             {
-                                                backgroundColor: theme.mode === 'light' ? theme.colors.primary : theme.colors.surface,
-                                                borderWidth: theme.mode === 'light' ? 0 : 1,
-                                                borderColor: theme.colors.border,
+                                                backgroundColor: theme.mode === 'light'
+                                                    ? theme.colors.primary + '10'
+                                                    : theme.colors.background,
+                                                borderWidth: 2,
+                                                borderColor: theme.mode === 'light'
+                                                    ? theme.colors.primary
+                                                    : theme.colors.border,
                                             },
                                         ]}
                                         onPress={setLightTheme}
                                         accessibilityRole="button"
                                         accessibilityLabel="Light theme"
                                         accessibilityState={{ selected: theme.mode === 'light' }}
+                                        activeOpacity={0.7}
                                     >
-                                        <Ionicons
-                                            name="sunny"
-                                            size={20}
-                                            color={theme.mode === 'light' ? '#FFFFFF' : theme.colors.text}
-                                            style={styles.themeIcon}
-                                        />
+                                        <View style={[
+                                            styles.themeIconCircle,
+                                            {
+                                                backgroundColor: theme.mode === 'light'
+                                                    ? theme.colors.primary
+                                                    : theme.colors.surface
+                                            }
+                                        ]}>
+                                            <Ionicons
+                                                name="sunny"
+                                                size={24}
+                                                color={theme.mode === 'light' ? '#FFFFFF' : theme.colors.textSecondary}
+                                            />
+                                        </View>
                                         <ThemedText
                                             size="sm"
-                                            weight="semibold"
+                                            weight={theme.mode === 'light' ? 'bold' : 'semibold'}
                                             style={[
                                                 styles.themeButtonLabel,
-                                                { color: theme.mode === 'light' ? '#FFFFFF' : theme.colors.text },
+                                                { color: theme.mode === 'light' ? theme.colors.primary : theme.colors.text },
                                             ]}
                                         >
                                             Light
                                         </ThemedText>
-                                        {theme.mode === 'light' && (
-                                            <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={styles.checkIcon} />
-                                        )}
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
                                         style={[
                                             styles.themeButton,
+                                            theme.mode === 'dark' && styles.themeButtonActive,
                                             {
-                                                backgroundColor: theme.mode === 'dark' ? theme.colors.primary : theme.colors.surface,
-                                                borderWidth: theme.mode === 'dark' ? 0 : 1,
-                                                borderColor: theme.colors.border,
+                                                backgroundColor: theme.mode === 'dark'
+                                                    ? theme.colors.primary + '10'
+                                                    : theme.colors.background,
+                                                borderWidth: 2,
+                                                borderColor: theme.mode === 'dark'
+                                                    ? theme.colors.primary
+                                                    : theme.colors.border,
                                             },
                                         ]}
                                         onPress={setDarkTheme}
                                         accessibilityRole="button"
                                         accessibilityLabel="Dark theme"
                                         accessibilityState={{ selected: theme.mode === 'dark' }}
+                                        activeOpacity={0.7}
                                     >
-                                        <Ionicons
-                                            name="moon"
-                                            size={20}
-                                            color={theme.mode === 'dark' ? '#FFFFFF' : theme.colors.text}
-                                            style={styles.themeIcon}
-                                        />
+                                        <View style={[
+                                            styles.themeIconCircle,
+                                            {
+                                                backgroundColor: theme.mode === 'dark'
+                                                    ? theme.colors.primary
+                                                    : theme.colors.surface
+                                            }
+                                        ]}>
+                                            <Ionicons
+                                                name="moon"
+                                                size={24}
+                                                color={theme.mode === 'dark' ? '#FFFFFF' : theme.colors.textSecondary}
+                                            />
+                                        </View>
                                         <ThemedText
                                             size="sm"
-                                            weight="semibold"
+                                            weight={theme.mode === 'dark' ? 'bold' : 'semibold'}
                                             style={[
                                                 styles.themeButtonLabel,
-                                                { color: theme.mode === 'dark' ? '#FFFFFF' : theme.colors.text },
+                                                { color: theme.mode === 'dark' ? theme.colors.primary : theme.colors.text },
                                             ]}
                                         >
                                             Dark
                                         </ThemedText>
-                                        {theme.mode === 'dark' && (
-                                            <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={styles.checkIcon} />
-                                        )}
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
                                         style={[
                                             styles.themeButton,
+                                            theme.mode === 'system' && styles.themeButtonActive,
                                             {
-                                                backgroundColor: theme.mode === 'system' ? theme.colors.primary : theme.colors.surface,
-                                                borderWidth: theme.mode === 'system' ? 0 : 1,
-                                                borderColor: theme.colors.border,
+                                                backgroundColor: theme.mode === 'system'
+                                                    ? theme.colors.primary + '10'
+                                                    : theme.colors.background,
+                                                borderWidth: 2,
+                                                borderColor: theme.mode === 'system'
+                                                    ? theme.colors.primary
+                                                    : theme.colors.border,
                                             },
                                         ]}
                                         onPress={setSystemTheme}
                                         accessibilityRole="button"
                                         accessibilityLabel="System theme"
                                         accessibilityState={{ selected: theme.mode === 'system' }}
+                                        activeOpacity={0.7}
                                     >
-                                        <Ionicons
-                                            name="phone-portrait"
-                                            size={20}
-                                            color={theme.mode === 'system' ? '#FFFFFF' : theme.colors.text}
-                                            style={styles.themeIcon}
-                                        />
+                                        <View style={[
+                                            styles.themeIconCircle,
+                                            {
+                                                backgroundColor: theme.mode === 'system'
+                                                    ? theme.colors.primary
+                                                    : theme.colors.surface
+                                            }
+                                        ]}>
+                                            <Ionicons
+                                                name="phone-portrait-outline"
+                                                size={24}
+                                                color={theme.mode === 'system' ? '#FFFFFF' : theme.colors.textSecondary}
+                                            />
+                                        </View>
                                         <ThemedText
                                             size="sm"
-                                            weight="semibold"
+                                            weight={theme.mode === 'system' ? 'bold' : 'semibold'}
                                             style={[
                                                 styles.themeButtonLabel,
-                                                { color: theme.mode === 'system' ? '#FFFFFF' : theme.colors.text },
+                                                { color: theme.mode === 'system' ? theme.colors.primary : theme.colors.text },
                                             ]}
                                         >
-                                            System
+                                            Auto
                                         </ThemedText>
-                                        {theme.mode === 'system' && (
-                                            <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={styles.checkIcon} />
-                                        )}
                                     </TouchableOpacity>
-                                </ThemedView>
+                                </View>
                             </ThemedView>
                         </ThemedView>
 
@@ -488,40 +526,92 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         gap: 12,
     },
+    sectionHeader: {
+        marginBottom: 16,
+    },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 6,
+    },
+    sectionIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sectionSubtitle: {
+        opacity: 0.8,
+    },
     themeCard: {
-        padding: 20,
-        borderRadius: 12,
+        padding: 16,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    themeButtons: {
+        flexDirection: 'row',
+        gap: 10,
+        justifyContent: 'space-between',
+    },
+    themeButton: {
+        flex: 1,
+        paddingVertical: 20,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'visible',
+    },
+    themeButtonActive: {
+        transform: [{ scale: 1.02 }],
+    },
+    themeIconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
             height: 2,
         },
         shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    themeButtons: {
-        flexDirection: 'row',
-        gap: 12,
-        justifyContent: 'space-between',
-    },
-    themeButton: {
-        flex: 1,
-        paddingVertical: 16,
-        paddingHorizontal: 8,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 80,
-    },
-    themeIcon: {
-        marginBottom: 6,
+        shadowRadius: 4,
+        elevation: 2,
     },
     themeButtonLabel: {
         textAlign: 'center',
-    },
-    checkIcon: {
         marginTop: 4,
+    },
+    activeIndicator: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 3,
     },
     logoutButton: {
         flexDirection: 'row',

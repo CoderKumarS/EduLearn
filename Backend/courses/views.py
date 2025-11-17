@@ -251,6 +251,282 @@ class CourseViewSet(viewsets.ModelViewSet):
         
         return Response({'results': recently_joined_courses})
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='instructor-dashboard')
+    def instructor_dashboard(self, request):
+        """Get comprehensive instructor dashboard data"""
+        user = request.user
+        
+        # Check if user is an instructor
+        if user.role != 'instructor':
+            return Response(
+                {'error': 'Only instructors can access this endpoint'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get instructor's courses with optimized queries
+        instructor_courses = Course.objects.filter(
+            instructor=user
+        ).select_related('instructor').prefetch_related(
+            'enrollments',
+            'ratings',
+            'chapters'
+        )
+        
+        # Calculate statistics
+        total_courses = instructor_courses.count()
+        total_students = Enrollment.objects.filter(
+            course__instructor=user
+        ).values('student').distinct().count()
+        total_chapters = Chapter.objects.filter(
+            course__instructor=user
+        ).count()
+        
+        # Get recently created courses (last 5)
+        recent_courses = instructor_courses.order_by('-created_at')[:5]
+        recent_courses_data = []
+        for course in recent_courses:
+            enrollment_count = course.enrollments.filter(is_active=True).count()
+            avg_rating = course.ratings.aggregate(Avg('rating'))['rating__avg']
+            
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': request.build_absolute_uri(course.thumbnail_image.url) if course.thumbnail_image else None,
+                'created_at': course.created_at.isoformat(),
+                'enrollment_count': enrollment_count,
+                'average_rating': round(avg_rating, 2) if avg_rating else None,
+                'instructor_name': course.instructor.username
+            }
+            recent_courses_data.append(course_data)
+        
+        # Get recently created chapters (last 5)
+        recent_chapters = Chapter.objects.filter(
+            course__instructor=user
+        ).select_related('course').order_by('-created_at')[:5]
+        
+        recent_chapters_data = []
+        for chapter in recent_chapters:
+            chapter_data = {
+                'id': chapter.id,
+                'title': chapter.title,
+                'course_id': chapter.course.id,
+                'course_title': chapter.course.title,
+                'created_at': chapter.created_at.isoformat()
+            }
+            recent_chapters_data.append(chapter_data)
+        
+        # Get recent student activities (last 10)
+        recent_activities = []
+        
+        # Get recent enrollments
+        recent_enrollments = Enrollment.objects.filter(
+            course__instructor=user
+        ).select_related('student', 'course').order_by('-enrolled_at')[:10]
+        
+        for enrollment in recent_enrollments:
+            activity = {
+                'id': f'enrollment_{enrollment.id}',
+                'student_name': enrollment.student.username,
+                'student_avatar': request.build_absolute_uri(enrollment.student.profile_image.url) if enrollment.student.profile_image else None,
+                'course_name': enrollment.course.title,
+                'course_id': enrollment.course.id,
+                'activity_type': 'enrollment',
+                'timestamp': enrollment.enrolled_at.isoformat(),
+                'details': {}
+            }
+            recent_activities.append(activity)
+        
+        # Get recent chapter completions
+        recent_completions = Progress.objects.filter(
+            course__instructor=user,
+            chapter__isnull=False,
+            is_completed=True
+        ).select_related('student', 'course', 'chapter').order_by('-last_accessed')[:10]
+        
+        for progress in recent_completions:
+            activity = {
+                'id': f'completion_{progress.id}',
+                'student_name': progress.student.username,
+                'student_avatar': request.build_absolute_uri(progress.student.profile_image.url) if progress.student.profile_image else None,
+                'course_name': progress.course.title,
+                'course_id': progress.course.id,
+                'activity_type': 'chapter_completion',
+                'timestamp': progress.last_accessed.isoformat(),
+                'details': {
+                    'chapter_title': progress.chapter.title
+                }
+            }
+            recent_activities.append(activity)
+        
+        # Get recent quiz submissions
+        recent_quiz_attempts = QuizAttempt.objects.filter(
+            quiz__course__instructor=user,
+            is_completed=True
+        ).select_related('student', 'quiz', 'quiz__course').order_by('-completed_at')[:10]
+        
+        for attempt in recent_quiz_attempts:
+            activity = {
+                'id': f'quiz_{attempt.id}',
+                'student_name': attempt.student.username,
+                'student_avatar': request.build_absolute_uri(attempt.student.profile_image.url) if attempt.student.profile_image else None,
+                'course_name': attempt.quiz.course.title,
+                'course_id': attempt.quiz.course.id,
+                'activity_type': 'quiz_submission',
+                'timestamp': attempt.completed_at.isoformat(),
+                'details': {
+                    'quiz_title': attempt.quiz.title,
+                    'score': float(attempt.percentage)
+                }
+            }
+            recent_activities.append(activity)
+        
+        # Sort all activities by timestamp and take top 10
+        recent_activities.sort(key=lambda x: x['timestamp'], reverse=True)
+        recent_activities = recent_activities[:10]
+        
+        # Get instructor's top performing courses by enrollment (top 3)
+        top_by_enrollment = instructor_courses.annotate(
+            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True))
+        ).order_by('-enrollment_count')[:3]
+        
+        top_by_enrollment_data = []
+        for course in top_by_enrollment:
+            avg_rating = course.ratings.aggregate(Avg('rating'))['rating__avg']
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': request.build_absolute_uri(course.thumbnail_image.url) if course.thumbnail_image else None,
+                'created_at': course.created_at.isoformat(),
+                'enrollment_count': course.enrollment_count,
+                'average_rating': round(avg_rating, 2) if avg_rating else None,
+                'instructor_name': course.instructor.username
+            }
+            top_by_enrollment_data.append(course_data)
+        
+        # Get instructor's top performing courses by rating (top 3)
+        top_by_rating = instructor_courses.annotate(
+            avg_rating=Avg('ratings__rating'),
+            rating_count=Count('ratings')
+        ).filter(rating_count__gt=0).order_by('-avg_rating')[:3]
+        
+        top_by_rating_data = []
+        for course in top_by_rating:
+            enrollment_count = course.enrollments.filter(is_active=True).count()
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': request.build_absolute_uri(course.thumbnail_image.url) if course.thumbnail_image else None,
+                'created_at': course.created_at.isoformat(),
+                'enrollment_count': enrollment_count,
+                'average_rating': round(course.avg_rating, 2) if course.avg_rating else None,
+                'instructor_name': course.instructor.username
+            }
+            top_by_rating_data.append(course_data)
+        
+        # Get other instructors' courses (6 latest, excluding current instructor)
+        other_instructors_courses = Course.objects.filter(
+            is_published=True
+        ).exclude(
+            instructor=user
+        ).select_related('instructor').prefetch_related(
+            'enrollments',
+            'ratings'
+        ).order_by('-created_at')[:6]
+        
+        other_instructors_courses_data = []
+        for course in other_instructors_courses:
+            enrollment_count = course.enrollments.filter(is_active=True).count()
+            avg_rating = course.ratings.aggregate(Avg('rating'))['rating__avg']
+            
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': request.build_absolute_uri(course.thumbnail_image.url) if course.thumbnail_image else None,
+                'created_at': course.created_at.isoformat(),
+                'enrollment_count': enrollment_count,
+                'average_rating': round(avg_rating, 2) if avg_rating else None,
+                'instructor_name': course.instructor.username
+            }
+            other_instructors_courses_data.append(course_data)
+        
+        # Get platform top ranking courses by enrollment (top 5)
+        platform_top_by_enrollment = Course.objects.filter(
+            is_published=True
+        ).select_related('instructor').prefetch_related(
+            'enrollments',
+            'ratings'
+        ).annotate(
+            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True))
+        ).order_by('-enrollment_count')[:5]
+        
+        platform_top_by_enrollment_data = []
+        for course in platform_top_by_enrollment:
+            avg_rating = course.ratings.aggregate(Avg('rating'))['rating__avg']
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': request.build_absolute_uri(course.thumbnail_image.url) if course.thumbnail_image else None,
+                'created_at': course.created_at.isoformat(),
+                'enrollment_count': course.enrollment_count,
+                'average_rating': round(avg_rating, 2) if avg_rating else None,
+                'instructor_name': course.instructor.username
+            }
+            platform_top_by_enrollment_data.append(course_data)
+        
+        # Get platform top ranking courses by rating (top 5)
+        platform_top_by_rating = Course.objects.filter(
+            is_published=True
+        ).select_related('instructor').prefetch_related(
+            'enrollments',
+            'ratings'
+        ).annotate(
+            avg_rating=Avg('ratings__rating'),
+            rating_count=Count('ratings')
+        ).filter(rating_count__gt=0).order_by('-avg_rating')[:5]
+        
+        platform_top_by_rating_data = []
+        for course in platform_top_by_rating:
+            enrollment_count = course.enrollments.filter(is_active=True).count()
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': request.build_absolute_uri(course.thumbnail_image.url) if course.thumbnail_image else None,
+                'created_at': course.created_at.isoformat(),
+                'enrollment_count': enrollment_count,
+                'average_rating': round(course.avg_rating, 2) if course.avg_rating else None,
+                'instructor_name': course.instructor.username
+            }
+            platform_top_by_rating_data.append(course_data)
+        
+        # Build the complete response
+        dashboard_data = {
+            'stats': {
+                'total_courses': total_courses,
+                'total_students': total_students,
+                'total_chapters': total_chapters
+            },
+            'recent_courses': recent_courses_data,
+            'recent_chapters': recent_chapters_data,
+            'recent_activities': recent_activities,
+            'my_top_courses': {
+                'by_enrollment': top_by_enrollment_data,
+                'by_rating': top_by_rating_data
+            },
+            'other_instructors_courses': other_instructors_courses_data,
+            'platform_top_courses': {
+                'by_enrollment': platform_top_by_enrollment_data,
+                'by_rating': platform_top_by_rating_data
+            }
+        }
+        
+        return Response(dashboard_data)
+
 
 class ChapterViewSet(viewsets.ModelViewSet):
     queryset = Chapter.objects.all()

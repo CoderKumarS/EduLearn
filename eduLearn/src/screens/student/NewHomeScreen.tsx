@@ -54,8 +54,11 @@ export const NewHomeScreen: React.FC = () => {
     }>({});
 
     useEffect(() => {
-        loadData();
-    }, []);
+        // Only load data if user is authenticated
+        if (isAuthenticated && user) {
+            loadData();
+        }
+    }, [isAuthenticated, user]);
 
     const loadData = async (useCache: boolean = true) => {
         try {
@@ -91,27 +94,46 @@ export const NewHomeScreen: React.FC = () => {
             }
 
             // Load all data in parallel
-            const [
-                continueData,
-                popularData,
-                recentData,
-                categoriesData,
-                dashboardData,
-            ] = await Promise.allSettled([
-                courseService.getContinueLearning(),
+            // Only load authenticated data if user is logged in
+            const promises = [
                 courseService.getPopularCourses(5),
-                courseService.getRecentlyJoined(5),
                 courseService.getCategories(),
-                courseService.getDashboardStats(),
-            ]);
+            ];
+
+            if (isAuthenticated && user) {
+                promises.push(
+                    courseService.getContinueLearning(),
+                    courseService.getRecentlyJoined(5),
+                    courseService.getDashboardStats()
+                );
+            }
+
+            const results = await Promise.allSettled(promises);
+
+            // Map results based on what was requested
+            let resultIndex = 0;
+            const popularData = results[resultIndex++];
+            const categoriesData = results[resultIndex++];
+
+            let continueData: any = { status: 'rejected' };
+            let recentData: any = { status: 'rejected' };
+            let dashboardData: any = { status: 'rejected' };
+
+            if (isAuthenticated && user) {
+                continueData = results[resultIndex++];
+                recentData = results[resultIndex++];
+                dashboardData = results[resultIndex++];
+            }
 
             const newErrors: any = {};
 
-            if (continueData.status === 'fulfilled') {
-                setContinueLearning(continueData.value);
-                await cacheManager.set('continueLearning', continueData.value);
-            } else {
-                newErrors.continueLearning = 'Failed to load continue learning courses';
+            if (isAuthenticated && user) {
+                if (continueData.status === 'fulfilled') {
+                    setContinueLearning(continueData.value);
+                    await cacheManager.set('continueLearning', continueData.value);
+                } else {
+                    newErrors.continueLearning = 'Failed to load continue learning courses';
+                }
             }
 
             if (popularData.status === 'fulfilled') {
@@ -121,11 +143,13 @@ export const NewHomeScreen: React.FC = () => {
                 newErrors.popularCourses = 'Failed to load popular courses';
             }
 
-            if (recentData.status === 'fulfilled') {
-                setRecentlyJoined(recentData.value);
-                await cacheManager.set('recentlyJoined', recentData.value);
-            } else {
-                newErrors.recentlyJoined = 'Failed to load recently joined courses';
+            if (isAuthenticated && user) {
+                if (recentData.status === 'fulfilled') {
+                    setRecentlyJoined(recentData.value);
+                    await cacheManager.set('recentlyJoined', recentData.value);
+                } else {
+                    newErrors.recentlyJoined = 'Failed to load recently joined courses';
+                }
             }
 
             if (categoriesData.status === 'fulfilled') {
@@ -135,11 +159,14 @@ export const NewHomeScreen: React.FC = () => {
                 newErrors.categories = 'Failed to load categories';
             }
 
-            if (dashboardData.status === 'fulfilled') {
-                setDashboardStats(dashboardData.value);
-                await cacheManager.set('dashboardStats', dashboardData.value);
-            } else {
-                newErrors.dashboard = 'Failed to load dashboard stats';
+            if (isAuthenticated && user) {
+                if (dashboardData.status === 'fulfilled') {
+                    setDashboardStats(dashboardData.value);
+                    await cacheManager.set('dashboardStats', dashboardData.value);
+                } else {
+                    console.error('Error loading dashboard stats:', dashboardData.status === 'rejected' ? dashboardData.reason : 'Unknown error');
+                    newErrors.dashboard = 'Failed to load dashboard stats';
+                }
             }
 
             setErrors(newErrors);
@@ -184,10 +211,12 @@ export const NewHomeScreen: React.FC = () => {
     };
 
     const onRefresh = useCallback(async () => {
-        setRefreshing(true);
-        await loadData(false); // Skip cache on manual refresh
-        setRefreshing(false);
-    }, []);
+        if (isAuthenticated && user) {
+            setRefreshing(true);
+            await loadData(false); // Skip cache on manual refresh
+            setRefreshing(false);
+        }
+    }, [isAuthenticated, user]);
 
     const handleSearch = (query: string) => {
         // Navigate to search results

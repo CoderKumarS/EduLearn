@@ -52,10 +52,21 @@ export const StudentDashboardNew: React.FC = () => {
     const [quizScores, setQuizScores] = useState<any[]>([]);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        // Only load data if user is authenticated
+        if (isAuthenticated && user) {
+            loadData();
+        } else {
+            setLoading(false);
+        }
+    }, [isAuthenticated, user]);
 
     const loadData = async (useCache: boolean = true) => {
+        // Don't load data if user is not authenticated
+        if (!isAuthenticated || !user) {
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
 
@@ -80,9 +91,11 @@ export const StudentDashboardNew: React.FC = () => {
     };
 
     const onRefresh = async () => {
-        setRefreshing(true);
-        await loadData(false);
-        setRefreshing(false);
+        if (isAuthenticated && user) {
+            setRefreshing(true);
+            await loadData(false);
+            setRefreshing(false);
+        }
     };
 
     const handleEnrolledPress = async () => {

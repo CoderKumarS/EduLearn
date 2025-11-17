@@ -87,10 +87,28 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             if (!user?.id) {
                 throw new Error('User not authenticated');
             }
-            await profileService.updateUserProfile(user.id, {
-                email: formData.email,
-                username: `${formData.firstName} ${formData.lastName}`,
-            });
+
+            // Only send fields that have changed
+            const updateData: any = {};
+            const newUsername = `${formData.firstName} ${formData.lastName}`;
+
+            if (formData.email !== user.email) {
+                updateData.email = formData.email;
+            }
+
+            if (newUsername !== user.username) {
+                updateData.first_name = formData.firstName;
+                updateData.last_name = formData.lastName;
+            }
+
+            // If nothing changed, don't make API call
+            if (Object.keys(updateData).length === 0) {
+                Alert.alert('Info', 'No changes to save');
+                setLoading(false);
+                return;
+            }
+
+            await profileService.updateUserProfile(user.id, updateData);
             Alert.alert('Success', 'Profile updated successfully!');
         } catch (error) {
             const apiError = handleApiError(error);

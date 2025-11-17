@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 // Auth screens
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -28,8 +30,6 @@ import { InstructorDashboard } from '../screens/instructor/InstructorDashboard';
 import { InstructorHomeScreen } from '../screens/instructor/InstructorHomeScreen';
 
 // Student screens
-import { StudentDashboard } from '../screens/student/StudentDashboard';
-import { StudentHomeScreen } from '../screens/student/StudentHomeScreen';
 import { NewHomeScreen } from '../screens/student/NewHomeScreen';
 import { StudentDashboardNew } from '../screens/student/StudentDashboardNew';
 
@@ -40,7 +40,6 @@ import { AboutUsScreen } from '../screens/common/AboutUsScreen';
 import { ContactUsScreen } from '../screens/common/ContactUsScreen';
 
 // Other screens (not moved yet)
-import TestScreen from '../screens/TestScreen';
 import HomeScreen from '../screens/HomeScreen';
 import { AITutorChatScreen } from '../screens/AITutorChatScreen';
 import { ContentModerationScreen } from '../screens/ContentModerationScreen';
@@ -51,7 +50,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 export type RootStackParamList = {
     Splash: undefined;
-    Test: undefined;
     Login: undefined;
     Register: undefined;
     MainTabs: undefined;
@@ -68,7 +66,6 @@ export type RootStackParamList = {
     ContentModeration: undefined;
     AboutUs: undefined;
     ContactUs: undefined;
-    StudentDashboard: undefined;
     InstructorDashboard: undefined;
     AdminDashboard: undefined;
     ManageTopics: { chapterId: number };
@@ -80,6 +77,7 @@ export type RootStackParamList = {
 export type TabParamList = {
     Home: undefined;
     Courses: undefined;
+    AITutor: undefined;
     Dashboard: undefined;
     Profile: undefined;
 };
@@ -288,17 +286,6 @@ const ContactUsScreenWrapper: React.FC = () => {
     );
 };
 
-const StudentDashboardWrapper: React.FC = () => {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
-    return (
-        <StudentDashboard
-            onNavigateBack={() => navigation.goBack()}
-            onNavigateToCourse={(courseId: number) => navigation.navigate('CourseDetail', { courseId })}
-        />
-    );
-};
-
 const InstructorDashboardWrapper: React.FC = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -347,16 +334,61 @@ const HomeScreenSelector: React.FC = () => {
     return <HomeScreen />;
 };
 
+// Custom AI Tutor Button Component
+const AITutorButton: React.FC<{ onPress: () => void; theme: any }> = ({ onPress, theme }) => {
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            style={tabBarStyles.aiTutorButtonContainer}
+            activeOpacity={0.8}
+        >
+            <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primary + 'DD']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={tabBarStyles.aiTutorButton}
+            >
+                <Ionicons name="chatbubbles" size={28} color="#FFFFFF" />
+            </LinearGradient>
+        </TouchableOpacity>
+    );
+};
+
 // Tab Navigator Component
 const MainTabs: React.FC = () => {
     const { theme } = useTheme();
+    const navigation = useNavigation<any>();
 
     return (
         <Tab.Navigator
             screenOptions={{
-                headerShown: Boolean(false), // Hide all tab headers
+                headerShown: Boolean(false),
                 tabBarActiveTintColor: theme.colors.primary,
                 tabBarInactiveTintColor: theme.colors.textSecondary,
+                tabBarStyle: {
+                    height: 70,
+                    paddingBottom: 8,
+                    paddingTop: 8,
+                    borderTopWidth: 1,
+                    borderTopColor: theme.colors.border,
+                    backgroundColor: theme.colors.card,
+                    elevation: 8,
+                    shadowColor: '#000',
+                    shadowOffset: {
+                        width: 0,
+                        height: -2,
+                    },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '600',
+                    marginBottom: 2,
+                },
+                tabBarItemStyle: {
+                    paddingVertical: 4,
+                },
             }}
         >
             <Tab.Screen
@@ -366,11 +398,13 @@ const MainTabs: React.FC = () => {
                     title: 'Home',
                     headerShown: Boolean(false),
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons
-                            name={focused ? "home" : "home-outline"}
-                            size={size}
-                            color={color}
-                        />
+                        <View style={tabBarStyles.iconContainer}>
+                            <Ionicons
+                                name={focused ? "home" : "home-outline"}
+                                size={24}
+                                color={color}
+                            />
+                        </View>
                     ),
                 }}
             />
@@ -381,12 +415,35 @@ const MainTabs: React.FC = () => {
                     title: 'Courses',
                     headerShown: Boolean(false),
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons
-                            name={focused ? "book" : "book-outline"}
-                            size={size}
-                            color={color}
+                        <View style={tabBarStyles.iconContainer}>
+                            <Ionicons
+                                name={focused ? "book" : "book-outline"}
+                                size={24}
+                                color={color}
+                            />
+                        </View>
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="AITutor"
+                component={View}
+                listeners={{
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate('AITutorChat', {});
+                    },
+                }}
+                options={{
+                    title: '',
+                    headerShown: Boolean(false),
+                    tabBarIcon: () => (
+                        <AITutorButton
+                            onPress={() => navigation.navigate('AITutorChat', {})}
+                            theme={theme}
                         />
                     ),
+                    tabBarLabel: () => null,
                 }}
             />
             <Tab.Screen
@@ -396,11 +453,13 @@ const MainTabs: React.FC = () => {
                     title: 'Dashboard',
                     headerShown: Boolean(false),
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons
-                            name={focused ? "grid" : "grid-outline"}
-                            size={size}
-                            color={color}
-                        />
+                        <View style={tabBarStyles.iconContainer}>
+                            <Ionicons
+                                name={focused ? "grid" : "grid-outline"}
+                                size={24}
+                                color={color}
+                            />
+                        </View>
                     ),
                 }}
             />
@@ -411,17 +470,51 @@ const MainTabs: React.FC = () => {
                     title: 'Profile',
                     headerShown: Boolean(false),
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons
-                            name={focused ? "person" : "person-outline"}
-                            size={size}
-                            color={color}
-                        />
+                        <View style={tabBarStyles.iconContainer}>
+                            <Ionicons
+                                name={focused ? "person" : "person-outline"}
+                                size={24}
+                                color={color}
+                            />
+                        </View>
                     ),
                 }}
             />
         </Tab.Navigator>
     );
 };
+
+// Tab Bar Styles
+const tabBarStyles = StyleSheet.create({
+    iconContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 32,
+        height: 32,
+    },
+    aiTutorButtonContainer: {
+        top: -20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    aiTutorButton: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+        borderWidth: 4,
+        borderColor: '#FFFFFF',
+    },
+});
 
 const AppNavigator: React.FC = () => {
     const { theme } = useTheme();
@@ -447,16 +540,6 @@ const AppNavigator: React.FC = () => {
                         headerShown: Boolean(false), // HIGH RISK: Wrap boolean with Boolean()
                         gestureEnabled: Boolean(false), // HIGH RISK: Wrap boolean with Boolean()
                         animation: 'fade',
-                    }}
-                />
-                <Stack.Screen
-                    name="Test"
-                    component={TestScreen}
-                    options={{
-                        title: 'Test Screen',
-                        headerLeft: () => null,
-                        headerShown: Boolean(true), // HIGH RISK: Wrap boolean with Boolean()
-                        gestureEnabled: Boolean(true), // HIGH RISK: Wrap boolean with Boolean()
                     }}
                 />
                 <Stack.Screen
@@ -572,7 +655,7 @@ const AppNavigator: React.FC = () => {
                     component={AITutorChatScreenWrapper}
                     options={{
                         title: 'AI Tutor',
-                        headerShown: Boolean(true),
+                        headerShown: Boolean(false),
                         gestureEnabled: Boolean(true),
                         animation: 'slide_from_right',
                     }}
@@ -613,16 +696,6 @@ const AppNavigator: React.FC = () => {
                     options={{
                         title: 'Contact Us',
                         headerShown: Boolean(false),
-                        gestureEnabled: Boolean(true),
-                        animation: 'slide_from_right',
-                    }}
-                />
-                <Stack.Screen
-                    name="StudentDashboard"
-                    component={StudentDashboardWrapper}
-                    options={{
-                        title: 'Student Dashboard',
-                        headerShown: Boolean(true),
                         gestureEnabled: Boolean(true),
                         animation: 'slide_from_right',
                     }}
