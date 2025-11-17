@@ -191,8 +191,24 @@ def reset_password_view(request):
         )
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
-    """Legacy profile view - redirects to user_profile_view"""
-    return user_profile_view(request)
+    """
+    GET: Retrieve current user profile
+    PUT/PATCH: Update user profile
+    Legacy endpoint that mirrors user_profile_view
+    """
+    user = request.user
+    
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
+    
+    elif request.method in ['PUT', 'PATCH']:
+        partial = request.method == 'PATCH'
+        serializer = UserProfileSerializer(user, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

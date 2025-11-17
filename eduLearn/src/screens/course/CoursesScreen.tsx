@@ -11,6 +11,7 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import { courseService } from '../../services/courseService';
 import { Course } from '../../types/course';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { getCourseImageUrl } from '../../utils/imageUtils';
 
 const CoursesScreen: React.FC = () => {
     const { theme } = useTheme();
@@ -72,11 +73,7 @@ const CoursesScreen: React.FC = () => {
 
     const renderCourseCard = (course: Course) => {
         const categoryColor = getCategoryColor(course.category || '');
-        // Generate a consistent random color based on course ID
-        const colors = ['4ECDC4', 'FF6B6B', '45B7D1', '96CEB4', 'FFEAA7', 'DFE6E9', 'A8E6CF', 'FFD93D'];
-        const colorIndex = course.id % colors.length;
-        const placeholderColor = colors[colorIndex];
-        const imageUrl = course.thumbnail_image || `https://via.placeholder.com/400x300/${placeholderColor}/FFFFFF?text=${encodeURIComponent(course.title.substring(0, 20))}`;
+        const imageUrl = getCourseImageUrl(course.thumbnail_image, course.title, course.id);
 
         return (
             <TouchableOpacity
@@ -89,6 +86,7 @@ const CoursesScreen: React.FC = () => {
                     source={{ uri: imageUrl }}
                     style={styles.courseImage}
                     resizeMode="cover"
+                    onError={(error) => console.log('Image load error for', course.title, error.nativeEvent)}
                 />
                 <View style={styles.courseContent}>
                     <View style={styles.courseTitleRow}>

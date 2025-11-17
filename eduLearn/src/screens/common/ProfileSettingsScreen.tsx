@@ -7,6 +7,7 @@ import {
     Image,
     Switch,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -15,6 +16,7 @@ import { ThemedView, ThemedText, Button, Input } from '../../components';
 import { Ionicons } from '@expo/vector-icons';
 import { profileService } from '../../services/profileService';
 import { handleApiError } from '../../utils/errorHandler';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 interface ProfileSettingsScreenProps {
     onNavigateBack?: () => void;
@@ -38,16 +40,46 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
     const { theme } = useTheme();
     const { user } = useAuth();
 
+    // Extract first and last name from user.name or username
+    const getFirstName = () => {
+        if (user?.name) {
+            return user.name.split(' ')[0] || '';
+        }
+        return user?.username?.split(' ')[0] || '';
+    };
+
+    const getLastName = () => {
+        if (user?.name) {
+            const parts = user.name.split(' ');
+            return parts.slice(1).join(' ') || '';
+        }
+        return user?.username?.split(' ')[1] || '';
+    };
+
     const [formData, setFormData] = useState<ProfileFormData>({
         email: user?.email || '',
-        firstName: user?.username?.split(' ')[0] || '',
-        lastName: user?.username?.split(' ')[1] || '',
+        firstName: getFirstName(),
+        lastName: getLastName(),
     });
 
     const [errors, setErrors] = useState<ProfileFormErrors>({});
     const [loading, setLoading] = useState(false);
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [pushNotifications, setPushNotifications] = useState(true);
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
+
+    const profileImageUrl = getFullImageUrl(user?.profile_image);
+
+    const getInitials = () => {
+        if (user?.name) {
+            return user.name.charAt(0).toUpperCase();
+        }
+        if (user?.username) {
+            return user.username.charAt(0).toUpperCase();
+        }
+        return 'U';
+    };
 
     const handleInputChange = (field: keyof ProfileFormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -108,7 +140,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
                 return;
             }
 
-            await profileService.updateUserProfile(user.id, updateData);
+            await profileService.updateUserProfile(Number(user.id), updateData);
             Alert.alert('Success', 'Profile updated successfully!');
         } catch (error) {
             const apiError = handleApiError(error);
@@ -173,15 +205,38 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
                 {/* Profile Header Section */}
                 <View style={styles.profileHeader}>
                     <View style={styles.photoContainer}>
-                        <View style={[styles.profilePhotoPlaceholder, { backgroundColor: theme.colors.surface }]}>
-                            <Ionicons name="person" size={48} color={theme.colors.textSecondary} />
-                        </View>
+                        {profileImageUrl && !imageError ? (
+                            <View style={styles.profilePhotoContainer}>
+                                <Image
+                                    source={{ uri: profileImageUrl }}
+                                    style={styles.profilePhoto}
+                                    onLoadStart={() => setImageLoading(true)}
+                                    onLoadEnd={() => setImageLoading(false)}
+                                    onError={(error) => {
+                                        console.log('Profile image load error:', error.nativeEvent);
+                                        setImageLoading(false);
+                                        setImageError(true);
+                                    }}
+                                />
+                                {imageLoading && (
+                                    <View style={styles.imageLoadingContainer}>
+                                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={[styles.profilePhotoPlaceholder, { backgroundColor: theme.colors.primary }]}>
+                                <ThemedText style={styles.initialsText}>
+                                    {getInitials()}
+                                </ThemedText>
+                            </View>
+                        )}
                     </View>
                     <ThemedText style={styles.userName}>
-                        {user?.username || 'Alice Johnson'}
+                        {user?.name || user?.username || 'User'}
                     </ThemedText>
                     <ThemedText variant="secondary" style={styles.userEmail}>
-                        {user?.email || 'alice.johnson@example.com'}
+                        {user?.email || 'No email'}
                     </ThemedText>
                     <TouchableOpacity
                         style={styles.changePhotoLink}
@@ -339,12 +394,38 @@ const styles = StyleSheet.create({
     photoContainer: {
         marginBottom: 16,
     },
+    profilePhotoContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        overflow: 'hidden',
+    },
+    profilePhoto: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+    },
+    imageLoadingContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    },
     profilePhotoPlaceholder: {
         width: 100,
         height: 100,
         borderRadius: 50,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    initialsText: {
+        fontSize: 40,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
     },
     userName: {
         fontSize: 20,

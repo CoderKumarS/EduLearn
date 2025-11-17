@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { useTheme } from '../../contexts/ThemeContext';
 import { User } from '../../types/auth';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 interface ProfileHeaderProps {
     user: User;
@@ -42,17 +43,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         return user.role.charAt(0).toUpperCase() + user.role.slice(1);
     };
 
+    const profileImageUrl = getFullImageUrl(user.profile_image);
+
     return (
         <ThemedView variant="surface" style={styles.container}>
             <View style={styles.avatarContainer}>
-                {user.profile_image && !imageError ? (
+                {profileImageUrl && !imageError ? (
                     <View style={styles.avatarImageContainer}>
                         <Image
-                            source={{ uri: user.profile_image }}
+                            source={{ uri: profileImageUrl }}
                             style={styles.avatarImage}
                             onLoadStart={() => setImageLoading(true)}
                             onLoadEnd={() => setImageLoading(false)}
-                            onError={() => {
+                            onError={(error) => {
+                                console.log('Profile image load error:', error.nativeEvent);
                                 setImageLoading(false);
                                 setImageError(true);
                             }}
@@ -85,6 +89,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             >
                 {user.name || user.username}
             </ThemedText>
+
+            {user.name && user.username && (
+                <ThemedText variant="secondary" size="sm" style={styles.username}>
+                    @{user.username}
+                </ThemedText>
+            )}
 
             <ThemedText variant="secondary" size="md" style={styles.email}>
                 {user.email}
@@ -160,6 +170,10 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     userName: {
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    username: {
         textAlign: 'center',
         marginBottom: 4,
     },

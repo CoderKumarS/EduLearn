@@ -28,14 +28,30 @@ class AuthService {
             // Step 2: Use user data from response (includes role)
             let user: User;
             if (userData) {
-                // Backend now returns user data with role
+                console.log('📋 Raw user data from login:', {
+                    first_name: userData.first_name,
+                    last_name: userData.last_name,
+                    username: userData.username,
+                });
+
+                // Backend now returns user data with role and profile image
                 user = {
                     id: userData.id?.toString() || '1',
                     username: userData.username,
                     email: userData.email,
                     role: userData.role || 'student',
+                    name: userData.first_name && userData.last_name
+                        ? `${userData.first_name} ${userData.last_name}`.trim()
+                        : undefined,
+                    profile_image: userData.profile_image,
+                    bio: userData.bio,
                 };
-                console.log('✅ User profile received from backend:', user.role);
+                console.log('✅ User profile received from backend:', {
+                    role: user.role,
+                    name: user.name,
+                    hasProfileImage: !!user.profile_image,
+                    profileImage: user.profile_image
+                });
             } else {
                 // Fallback: Extract from JWT token
                 try {
@@ -126,6 +142,33 @@ class AuthService {
             console.log('Logout error (ignored):', error);
         }
         return Promise.resolve();
+    }
+
+    async getCurrentUser(accessToken: string): Promise<User> {
+        try {
+            const response = await axios.get(`${this.baseURL}/profile/`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            const userData = response.data;
+            const user: User = {
+                id: userData.id?.toString() || '1',
+                username: userData.username,
+                email: userData.email,
+                role: userData.role || 'student',
+                name: userData.first_name && userData.last_name
+                    ? `${userData.first_name} ${userData.last_name}`.trim()
+                    : undefined,
+                profile_image: userData.profile_image,
+                bio: userData.bio,
+            };
+            return user;
+        } catch (error) {
+            console.error('Error fetching current user:', error);
+            throw error;
+        }
     }
 }
 

@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     },
     section: {
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingVertical: 10,
     },
     sectionTitle: {
         fontSize: 20,
@@ -452,6 +452,7 @@ const styles = StyleSheet.create({
     },
     horizontalScroll: {
         paddingRight: 20,
+        paddingBottom: 5
     },
     courseCard: {
         width: 200,

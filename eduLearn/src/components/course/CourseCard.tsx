@@ -2,6 +2,7 @@ import React, { useState, memo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 interface CourseCardProps {
     id: string;
@@ -24,6 +25,9 @@ const CourseCardComponent: React.FC<CourseCardProps> = ({
     const { theme } = useTheme();
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
+
+    // Convert relative image URL to full URL
+    const fullImageUrl = getFullImageUrl(imageUrl) || imageUrl;
 
     const handleImageLoadStart = () => {
         setImageLoading(true);
@@ -58,7 +62,7 @@ const CourseCardComponent: React.FC<CourseCardProps> = ({
                 {Boolean(!imageError) ? (
                     <>
                         <Image
-                            source={{ uri: imageUrl }}
+                            source={{ uri: fullImageUrl }}
                             style={[
                                 styles.image,
                                 {

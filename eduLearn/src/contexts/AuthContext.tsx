@@ -14,6 +14,7 @@ interface AuthContextType extends AuthState {
     register: (userData: RegisterData) => Promise<void>;
     logout: () => void;
     clearError: () => void;
+    refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -121,12 +122,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const userJson = await SecureStore.getItemAsync(USER_KEY);
 
             if (accessToken && refreshToken && userJson) {
-                const user: User = JSON.parse(userJson);
-                dispatch({
-                    type: 'RESTORE_TOKEN',
-                    payload: { user, accessToken, refreshToken },
-                });
-                console.log('Tokens restored from SecureStore');
+                // Try to fetch fresh user data from backend
+                try {
+                    const freshUser = await authService.getCurrentUser(accessToken);
+                    // Update stored user data with fresh data
+                    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(freshUser));
+                    dispatch({
+                        type: 'RESTORE_TOKEN',
+                        payload: { user: freshUser, accessToken, refreshToken },
+                    });
+                    console.log('Tokens restored with fresh user data from backend');
+                } catch (fetchError) {
+                    // If fetching fresh data fails, use stored data
+                    console.log('Using stored user data (fetch failed):', fetchError);
+                    const user: User = JSON.parse(userJson);
+                    dispatch({
+                        type: 'RESTORE_TOKEN',
+                        payload: { user, accessToken, refreshToken },
+                    });
+                    console.log('Tokens restored from SecureStore');
+                }
             } else {
                 // No stored tokens, set loading to false
                 dispatch({ type: 'LOGIN_FAILURE', payload: '' });
@@ -231,12 +246,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
         dispatch({ type: 'CLEAR_ERROR' });
     };
 
+    const refreshUserProfile = async (): Promise<void> => {
+        if (!state.accessToken) {
+            console.log('No access token available for profile refresh');
+            return;
+        }
+
+        try {
+            const freshUser = await authService.getCurrentUser(state.accessToken);
+            // Update stored user data
+            await SecureStore.setItemAsync(USER_KEY, JSON.stringify(freshUser));
+            dispatch({
+                type: 'RESTORE_TOKEN',
+                payload: {
+                    user: freshUser,
+                    accessToken: state.accessToken,
+                    refreshToken: state.refreshToken || ''
+                },
+            });
+            console.log('User profile refreshed successfully');
+        } catch (error) {
+            console.error('Error refreshing user profile:', error);
+        }
+    };
+
     const value: AuthContextType = {
         ...state,
         login,
         register,
         logout,
         clearError,
+        refreshUserProfile,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

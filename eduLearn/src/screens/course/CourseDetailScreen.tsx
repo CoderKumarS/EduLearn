@@ -8,7 +8,8 @@ import {
     Share,
     Dimensions,
     Modal,
-    Linking
+    Linking,
+    Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import quizService from '../../services/quizService';
 import { Course, Quiz, Enrollment, Chapter } from '../../types/course';
 import { handleApiError } from '../../utils/errorHandler';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { getFullImageUrl, getCourseImageUrl } from '../../utils/imageUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -288,12 +290,11 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
                 {/* Course Thumbnail */}
                 {course.thumbnail_image && (
                     <View style={[styles.videoContainer, { backgroundColor: theme.colors.surface }]}>
-                        <View style={styles.videoPlaceholder}>
-                            <Ionicons name="image-outline" size={64} color={theme.colors.primary} />
-                            <ThemedText variant="secondary" style={styles.videoText}>
-                                Course Thumbnail
-                            </ThemedText>
-                        </View>
+                        <Image
+                            source={{ uri: getFullImageUrl(course.thumbnail_image) || getCourseImageUrl(course.thumbnail_image, course.title, course.id) }}
+                            style={styles.courseThumbnailImage}
+                            resizeMode="cover"
+                        />
                     </View>
                 )}
 
@@ -603,6 +604,11 @@ const styles = StyleSheet.create({
         aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
+    },
+    courseThumbnailImage: {
+        width: '100%',
+        height: '100%',
     },
     videoPlaceholder: {
         flex: 1,

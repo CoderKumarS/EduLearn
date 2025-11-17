@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Course } from '../../types/course';
 import { Ionicons } from '@expo/vector-icons';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -125,10 +126,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
     if (variant === 'compact') {
         const renderCompactThumbnail = () => {
-            if (course.thumbnail_image) {
+            const imageUrl = getFullImageUrl(course.thumbnail_image);
+            if (imageUrl) {
                 return (
                     <Image
-                        source={{ uri: course.thumbnail_image }}
+                        source={{ uri: imageUrl }}
                         style={styles.compactThumbnail}
                     />
                 );
@@ -190,10 +192,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
     if (variant === 'featured') {
         const renderFeaturedThumbnail = () => {
-            if (course.thumbnail_image) {
+            const imageUrl = getFullImageUrl(course.thumbnail_image);
+            if (imageUrl) {
                 return (
                     <Image
-                        source={{ uri: course.thumbnail_image }}
+                        source={{ uri: imageUrl }}
                         style={styles.featuredThumbnail}
                     />
                 );
@@ -260,10 +263,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
     // Default variant
     const renderThumbnail = () => {
-        if (course.thumbnail_image) {
+        const imageUrl = getFullImageUrl(course.thumbnail_image);
+        if (imageUrl) {
             return (
                 <Image
-                    source={{ uri: course.thumbnail_image }}
+                    source={{ uri: imageUrl }}
                     style={styles.defaultThumbnail}
                 />
             );
