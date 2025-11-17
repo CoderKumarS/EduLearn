@@ -8,11 +8,13 @@ from courses.views import (
     CourseViewSet, EnrollmentViewSet, ChapterViewSet, QuizViewSet, QuestionViewSet,
     OptionViewSet, StudentAnswerViewSet, ProgressViewSet, QuizAttemptViewSet,
     NotificationViewSet, CertificateViewSet, DiscussionViewSet, ReplyViewSet,
-    RatingViewSet, BookmarkViewSet, TopicViewSet, TopicProgressViewSet
+    RatingViewSet, BookmarkViewSet, TopicViewSet, TopicProgressViewSet, CategoryViewSet,
+    DashboardViewSet
 )
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet, basename='course')
+router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'chapters', ChapterViewSet, basename='chapter')
 router.register(r'topics', TopicViewSet, basename='topic')
 router.register(r'topic-progress', TopicProgressViewSet, basename='topic-progress')
@@ -29,6 +31,7 @@ router.register(r'discussions', DiscussionViewSet, basename='discussion')
 router.register(r'replies', ReplyViewSet, basename='reply')
 router.register(r'ratings', RatingViewSet, basename='rating')
 router.register(r'bookmarks', BookmarkViewSet, basename='bookmark')
+router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

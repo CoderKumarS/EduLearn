@@ -5,6 +5,27 @@ import uuid
 User = settings.AUTH_USER_MODEL
 
 
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    icon = models.CharField(max_length=50, default='folder', help_text='Icon name for frontend display')
+    color = models.CharField(max_length=7, default='#3B82F6', help_text='Hex color code')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'Categories'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def course_count(self):
+        """Returns the number of published courses in this category"""
+        return self.courses.filter(is_published=True).count()
+
+
 class Course(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -18,6 +39,7 @@ class Course(models.Model):
         ('advanced', 'Advanced')
     ], default='beginner')
     category = models.CharField(max_length=100, blank=True)
+    category_obj = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True, related_name='courses', help_text='New category model')
     duration_hours = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

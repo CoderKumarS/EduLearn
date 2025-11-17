@@ -1,10 +1,19 @@
 from rest_framework import serializers
 from .models import (
     Course, Enrollment, Quiz, Question, Option, StudentAnswer, Progress, Chapter,
-    QuizAttempt, Notification, Certificate, Discussion, Reply, Rating, Bookmark, Topic, TopicProgress
+    QuizAttempt, Notification, Certificate, Discussion, Reply, Rating, Bookmark, Topic, TopicProgress, Category
 )
 from django.conf import settings
 from users.serializers import UserProfileSerializer
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    courseCount = serializers.IntegerField(source='course_count', read_only=True)
+    
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'icon', 'color', 'courseCount', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class OptionSerializer(serializers.ModelSerializer):

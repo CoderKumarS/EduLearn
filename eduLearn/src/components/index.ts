@@ -15,10 +15,27 @@ export { UserListItem } from './common/UserListItem';
 export { LoadingScreen } from './common/LoadingScreen';
 export { ProfileHeader } from './common/ProfileHeader';
 export { QuickActionButton } from './common/QuickActionButton';
+export { CourseCard } from './common/CourseCard';
+export { SectionHeader } from './common/SectionHeader';
+export { CategoryCard } from './common/CategoryCard';
+export { WelcomeBanner } from './common/WelcomeBanner';
+export { SearchBar } from './common/SearchBar';
+export { SkeletonLoader, CourseCardSkeleton, CategoryCardSkeleton } from './common/SkeletonLoader';
+export { ErrorMessage } from './common/ErrorMessage';
 
 // Course components
-export { CourseCard } from './course/CourseCard';
 export { ChapterItem } from './course/ChapterItem';
+
+// Home components
+export { ContinueLearningSection } from './home/ContinueLearningSection';
+export { PopularCoursesSection } from './home/PopularCoursesSection';
+export { RecentlyJoinedSection } from './home/RecentlyJoinedSection';
+export { CourseCategoriesSection } from './home/CourseCategoriesSection';
+
+// Dashboard components
+export { DashboardView } from './dashboard/DashboardView';
+export { WeeklyProgressChart } from './dashboard/WeeklyProgressChart';
+export { RecentActivityTimeline } from './dashboard/RecentActivityTimeline';
 
 // Quiz components
 export { QuizOption } from './quiz/QuizOption';

@@ -96,6 +96,32 @@ class CourseService {
     async getInstructorCourses(instructorId: number): Promise<Course[]> {
         return this.getCourses({ instructor: instructorId });
     }
+
+    // Dashboard endpoints
+    async getContinueLearning(): Promise<any[]> {
+        const response = await api.get('/dashboard/continue-learning/');
+        return response.data.results || response.data;
+    }
+
+    async getPopularCourses(limit: number = 5): Promise<any[]> {
+        const response = await api.get('/dashboard/popular/', { params: { limit } });
+        return response.data.results || response.data;
+    }
+
+    async getRecentlyJoined(limit: number = 5): Promise<any[]> {
+        const response = await api.get('/dashboard/recently-joined/', { params: { limit } });
+        return response.data.results || response.data;
+    }
+
+    async getCategories(): Promise<any[]> {
+        const response = await api.get('/categories/');
+        return response.data.results || response.data;
+    }
+
+    async getDashboardStats(): Promise<any> {
+        const response = await api.get('/dashboard/stats/');
+        return response.data;
+    }
 }
 
 // Chapter Service

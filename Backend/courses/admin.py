@@ -2,8 +2,20 @@ from django.contrib import admin
 from .models import (
     Course, Chapter, Topic, TopicProgress, Quiz, Question, Option, Enrollment, Progress,
     StudentAnswer, QuizAttempt, Notification, Certificate, Discussion,
-    Reply, Rating, Bookmark
+    Reply, Rating, Bookmark, Category
 )
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'icon', 'color', 'get_course_count', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['name', 'slug']
+    prepopulated_fields = {'slug': ('name',)}
+    
+    def get_course_count(self, obj):
+        return obj.course_count
+    get_course_count.short_description = 'Course Count'
 
 
 @admin.register(Course)

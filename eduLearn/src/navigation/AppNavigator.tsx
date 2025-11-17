@@ -30,6 +30,8 @@ import { InstructorHomeScreen } from '../screens/instructor/InstructorHomeScreen
 // Student screens
 import { StudentDashboard } from '../screens/student/StudentDashboard';
 import { StudentHomeScreen } from '../screens/student/StudentHomeScreen';
+import { NewHomeScreen } from '../screens/student/NewHomeScreen';
+import { StudentDashboardNew } from '../screens/student/StudentDashboardNew';
 
 // Common screens
 import ProfileScreen from '../screens/common/ProfileScreen';
@@ -55,7 +57,8 @@ export type RootStackParamList = {
     MainTabs: undefined;
     CreateCourse: undefined;
     CourseDetail: { courseId: number };
-    ChapterDetail: { chapterId: number };
+    CourseList: { filter?: string; category?: string; categoryName?: string };
+    ChapterDetail: { chapterId: number; courseId?: number };
     TopicDetail: { topicId: number; chapterId: number };
     Quiz: { quizId: number; courseId: number };
     QuizList: { chapterId: number };
@@ -329,8 +332,19 @@ const DashboardScreenSelector: React.FC = () => {
     } else if (role === 'instructor') {
         return <InstructorHomeScreen />;
     } else {
-        return <StudentHomeScreen />;
+        return <StudentDashboardNew />;
     }
+};
+
+// Role-based Home Component
+const HomeScreenSelector: React.FC = () => {
+    const { user } = useAuth();
+    const role = user?.role || 'student';
+
+    if (role === 'student') {
+        return <NewHomeScreen />;
+    }
+    return <HomeScreen />;
 };
 
 // Tab Navigator Component
@@ -347,7 +361,7 @@ const MainTabs: React.FC = () => {
         >
             <Tab.Screen
                 name="Home"
-                component={HomeScreen}
+                component={HomeScreenSelector}
                 options={{
                     title: 'Home',
                     headerShown: Boolean(false),
@@ -489,6 +503,16 @@ const AppNavigator: React.FC = () => {
                     options={{
                         title: 'Course Details',
                         headerShown: Boolean(false),
+                        gestureEnabled: Boolean(true),
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="CourseList"
+                    component={CoursesScreen}
+                    options={{
+                        title: 'Courses',
+                        headerShown: Boolean(true),
                         gestureEnabled: Boolean(true),
                         animation: 'slide_from_right',
                     }}

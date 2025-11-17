@@ -81,7 +81,6 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
                 try {
                     // Use getMyCourses which returns enrollments for the current user
                     const userEnrollments = await enrollmentService.getMyCourses();
-                    console.log('User enrollments loaded:', userEnrollments.length);
                     setEnrollments(userEnrollments);
                 } catch (enrollError) {
                     console.error('Error loading enrollments:', enrollError);

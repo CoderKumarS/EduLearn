@@ -8,14 +8,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import (
     Course, Enrollment, Chapter, Quiz, Question, Option, StudentAnswer, Progress,
-    QuizAttempt, Notification, Certificate, Discussion, Reply, Rating, Bookmark, Topic, TopicProgress
+    QuizAttempt, Notification, Certificate, Discussion, Reply, Rating, Bookmark, Topic, TopicProgress, Category
 )
 from .serializers import (
     CourseSerializer, EnrollmentSerializer, ChapterSerializer, QuizSerializer,
     QuestionSerializer, OptionSerializer, StudentAnswerSerializer, ProgressSerializer,
     QuizAttemptSerializer, NotificationSerializer, CertificateSerializer,
     DiscussionSerializer, ReplySerializer, RatingSerializer, BookmarkSerializer, 
-    TopicSerializer, TopicProgressSerializer
+    TopicSerializer, TopicProgressSerializer, CategorySerializer
 )
 from .permissions import IsInstructorOrReadOnly
 
@@ -114,12 +114,142 @@ class CourseViewSet(viewsets.ModelViewSet):
             'courses': courses_with_enrollments
         })
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='continue-learning')
+    def continue_learning(self, request):
+        """Get courses with incomplete progress for the authenticated user"""
+        user = request.user
+        
+        # Get all enrollments for the user
+        enrollments = Enrollment.objects.filter(student=user).select_related('course')
+        
+        continue_learning_courses = []
+        
+        for enrollment in enrollments:
+            course = enrollment.course
+            
+            # Calculate progress based on topic completion
+            total_topics = Topic.objects.filter(
+                chapter__course=course
+            ).count()
+            
+            if total_topics == 0:
+                continue
+            
+            # Count completed topics
+            completed_topics = TopicProgress.objects.filter(
+                student=user,
+                topic__chapter__course=course,
+                is_completed=True
+            ).count()
+            
+            # Check if user has any progress in this course
+            has_progress = TopicProgress.objects.filter(
+                student=user,
+                topic__chapter__course=course
+            ).exists()
+            
+            progress_percentage = (completed_topics / total_topics * 100) if total_topics > 0 else 0
+            
+            # Include courses that have any progress but not completed
+            if has_progress and progress_percentage < 100:
+                # Get last accessed chapter
+                last_progress = Progress.objects.filter(
+                    student=user,
+                    course=course
+                ).order_by('-last_accessed').first()
+                
+                last_accessed_chapter_id = last_progress.chapter.id if last_progress and last_progress.chapter else None
+                
+                # Get next chapter to study
+                next_chapter = None
+                if last_accessed_chapter_id:
+                    # Get the next chapter after the last accessed one
+                    next_chapter_obj = Chapter.objects.filter(
+                        course=course,
+                        order__gt=last_progress.chapter.order
+                    ).order_by('order').first()
+                    
+                    if next_chapter_obj:
+                        next_chapter = {
+                            'id': next_chapter_obj.id,
+                            'title': next_chapter_obj.title
+                        }
+                else:
+                    # If no progress, get the first chapter
+                    first_chapter = course.chapters.order_by('order').first()
+                    if first_chapter:
+                        next_chapter = {
+                            'id': first_chapter.id,
+                            'title': first_chapter.title
+                        }
+                
+                course_data = CourseSerializer(course, context={'request': request}).data
+                course_data['progress'] = round(progress_percentage, 2)
+                course_data['lastAccessedChapter'] = last_accessed_chapter_id
+                course_data['nextChapter'] = next_chapter
+                course_data['enrolledAt'] = enrollment.enrolled_at.isoformat()
+                
+                continue_learning_courses.append(course_data)
+        
+        # Sort by last accessed (most recent first)
+        continue_learning_courses.sort(
+            key=lambda x: x.get('enrolledAt', ''),
+            reverse=True
+        )
+        
+        return Response({'results': continue_learning_courses})
+
     @action(detail=True, methods=['get'])
     def enrollment_count(self, request, pk=None):
         """Get the enrollment count for a specific course"""
         course = self.get_object()
         count = course.enrollments.filter(is_active=True).count()
         return Response({'course_id': course.id, 'enrollment_count': count})
+
+    @action(detail=False, methods=['get'])
+    def popular(self, request):
+        """Get top courses by enrollment count"""
+        limit = int(request.query_params.get('limit', 5))
+        
+        # Annotate courses with enrollment count and rating
+        courses = Course.objects.annotate(
+            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True)),
+            avg_rating=Avg('ratings__rating'),
+            review_count=Count('ratings')
+        ).filter(
+            is_published=True
+        ).order_by('-enrollment_count')[:limit]
+        
+        popular_courses = []
+        for course in courses:
+            course_data = CourseSerializer(course, context={'request': request}).data
+            course_data['enrollmentCount'] = course.enrollment_count
+            course_data['rating'] = round(course.avg_rating, 2) if course.avg_rating else 0
+            course_data['reviewCount'] = course.review_count
+            popular_courses.append(course_data)
+        
+        return Response({'results': popular_courses})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='recently-joined')
+    def recently_joined(self, request):
+        """Get user's recently enrolled courses"""
+        limit = int(request.query_params.get('limit', 5))
+        user = request.user
+        
+        # Get recent enrollments sorted by enrollment date
+        recent_enrollments = Enrollment.objects.filter(
+            student=user,
+            is_active=True
+        ).select_related('course').order_by('-enrolled_at')[:limit]
+        
+        recently_joined_courses = []
+        for enrollment in recent_enrollments:
+            course = enrollment.course
+            course_data = CourseSerializer(course, context={'request': request}).data
+            course_data['enrolledAt'] = enrollment.enrolled_at.isoformat()
+            recently_joined_courses.append(course_data)
+        
+        return Response({'results': recently_joined_courses})
 
 
 class ChapterViewSet(viewsets.ModelViewSet):
@@ -934,3 +1064,277 @@ class BookmarkViewSet(viewsets.ModelViewSet):
         bookmarks = Bookmark.objects.filter(student=request.user, chapter__isnull=False)
         serializer = self.get_serializer(bookmarks, many=True)
         return Response(serializer.data)
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'slug']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['name']
+
+    def list(self, request, *args, **kwargs):
+        """Get all categories with course counts"""
+        categories = self.get_queryset()
+        
+        category_data = []
+        for category in categories:
+            cat_dict = CategorySerializer(category).data
+            # The course_count is already included via the serializer
+            category_data.append(cat_dict)
+        
+        return Response({'results': category_data})
+
+
+class DashboardViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get dashboard statistics for the authenticated user"""
+        user = request.user
+        
+        # Get enrollments
+        enrollments = Enrollment.objects.filter(student=user, is_active=True)
+        enrolled_courses_count = enrollments.count()
+        
+        # Get completed courses
+        completed_courses_count = enrollments.filter(completion_date__isnull=False).count()
+        
+        # Calculate total learning time from Progress
+        total_learning_time = Progress.objects.filter(student=user).aggregate(
+            total_time=models.Sum('time_spent_minutes')
+        )['total_time'] or 0
+        
+        # Calculate current streak (simplified - days with activity)
+        # For a real implementation, you'd want to check consecutive days
+        from datetime import timedelta
+        today = timezone.now().date()
+        recent_activity = Progress.objects.filter(
+            student=user,
+            last_accessed__gte=today - timedelta(days=7)
+        ).values('last_accessed__date').distinct().count()
+        current_streak = recent_activity  # Simplified streak calculation
+        
+        # Calculate average score
+        average_score = Progress.objects.filter(student=user).aggregate(
+            avg_score=Avg('score')
+        )['avg_score'] or 0
+        
+        # Get weekly progress (last 7 days)
+        weekly_progress = []
+        for i in range(6, -1, -1):
+            date = today - timedelta(days=i)
+            minutes_learned = Progress.objects.filter(
+                student=user,
+                last_accessed__date=date
+            ).aggregate(total=models.Sum('time_spent_minutes'))['total'] or 0
+            
+            weekly_progress.append({
+                'date': date.isoformat(),
+                'minutesLearned': minutes_learned
+            })
+        
+        # Get recent activity
+        recent_activity_list = []
+        
+        # Recent enrollments
+        recent_enrollments = enrollments.order_by('-enrolled_at')[:5]
+        for enrollment in recent_enrollments:
+            recent_activity_list.append({
+                'id': enrollment.id,
+                'type': 'course_enrolled',
+                'title': f'Enrolled in {enrollment.course.title}',
+                'timestamp': enrollment.enrolled_at.isoformat()
+            })
+        
+        # Recent chapter completions
+        recent_completions = Progress.objects.filter(
+            student=user,
+            is_completed=True,
+            chapter__isnull=False
+        ).select_related('chapter').order_by('-last_accessed')[:5]
+        
+        for progress in recent_completions:
+            recent_activity_list.append({
+                'id': progress.id,
+                'type': 'chapter_completed',
+                'title': f'Completed: {progress.chapter.title}',
+                'timestamp': progress.last_accessed.isoformat()
+            })
+        
+        # Recent quiz completions
+        recent_quizzes = QuizAttempt.objects.filter(
+            student=user,
+            is_completed=True
+        ).select_related('quiz').order_by('-completed_at')[:5]
+        
+        for attempt in recent_quizzes:
+            recent_activity_list.append({
+                'id': attempt.id,
+                'type': 'quiz_completed',
+                'title': f'Completed quiz: {attempt.quiz.title}',
+                'timestamp': attempt.completed_at.isoformat()
+            })
+        
+        # Sort all activities by timestamp and take top 10
+        recent_activity_list.sort(key=lambda x: x['timestamp'], reverse=True)
+        recent_activity_list = recent_activity_list[:10]
+        
+        return Response({
+            'enrolledCourses': enrolled_courses_count,
+            'completedCourses': completed_courses_count,
+            'totalLearningTime': total_learning_time,
+            'currentStreak': current_streak,
+            'averageScore': round(average_score, 2),
+            'weeklyProgress': weekly_progress,
+            'recentActivity': recent_activity_list
+        })
+
+    @action(detail=False, methods=['get'], url_path='continue-learning')
+    def continue_learning(self, request):
+        """Get courses the user is currently learning (with progress)"""
+        user = request.user
+        
+        # Get active enrollments with progress
+        enrollments = Enrollment.objects.filter(
+            student=user,
+            is_active=True,
+            completion_date__isnull=True  # Not completed yet
+        ).select_related('course', 'course__instructor').prefetch_related('course__chapters')
+        
+        courses_data = []
+        for enrollment in enrollments:
+            course = enrollment.course
+            
+            # Calculate progress percentage based on topic completion
+            # Get all topics for this course
+            from django.db.models import Count, Q
+            
+            total_topics = Topic.objects.filter(
+                chapter__course=course
+            ).count()
+            
+            if total_topics > 0:
+                # Count completed topics
+                completed_topics = TopicProgress.objects.filter(
+                    student=user,
+                    topic__chapter__course=course,
+                    is_completed=True
+                ).count()
+                
+                progress_percentage = (completed_topics / total_topics) * 100
+            else:
+                # Fallback to chapter-based progress if no topics exist
+                total_chapters = course.chapters.count()
+                if total_chapters > 0:
+                    completed_chapters = Progress.objects.filter(
+                        student=user,
+                        course=course,
+                        chapter__isnull=False,
+                        is_completed=True
+                    ).values('chapter').distinct().count()
+                    progress_percentage = (completed_chapters / total_chapters) * 100
+                else:
+                    progress_percentage = 0
+            
+            # Get last accessed chapter
+            last_progress = Progress.objects.filter(
+                student=user,
+                course=course
+            ).order_by('-last_accessed').first()
+            
+            course_data = CourseSerializer(course).data
+            course_data['progress'] = round(progress_percentage, 2)
+            course_data['enrolledAt'] = enrollment.enrolled_at.isoformat()
+            
+            if last_progress and last_progress.chapter:
+                course_data['lastAccessedChapter'] = last_progress.chapter.id
+                course_data['nextChapter'] = {
+                    'id': last_progress.chapter.id,
+                    'title': last_progress.chapter.title
+                }
+            
+            courses_data.append(course_data)
+        
+        # Sort by last accessed (most recent first)
+        courses_data.sort(key=lambda x: x.get('enrolledAt', ''), reverse=True)
+        
+        return Response(courses_data)
+    
+    @action(detail=False, methods=['get'])
+    def popular(self, request):
+        """Get popular courses based on enrollment count"""
+        limit = int(request.query_params.get('limit', 10))
+        
+        # Get courses with enrollment count
+        courses = Course.objects.filter(
+            is_published=True
+        ).annotate(
+            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True)),
+            avg_rating=Avg('ratings__rating'),
+            review_count=Count('ratings')
+        ).order_by('-enrollment_count')[:limit]
+        
+        courses_data = []
+        for course in courses:
+            course_data = CourseSerializer(course).data
+            course_data['enrollmentCount'] = course.enrollment_count
+            course_data['rating'] = round(course.avg_rating, 1) if course.avg_rating else 0
+            course_data['reviewCount'] = course.review_count
+            courses_data.append(course_data)
+        
+        return Response(courses_data)
+    
+    @action(detail=False, methods=['get'], url_path='recently-joined')
+    def recently_joined(self, request):
+        """Get courses the user recently enrolled in"""
+        user = request.user
+        limit = int(request.query_params.get('limit', 10))
+        
+        # Get recent enrollments
+        enrollments = Enrollment.objects.filter(
+            student=user,
+            is_active=True
+        ).select_related('course', 'course__instructor').order_by('-enrolled_at')[:limit]
+        
+        courses_data = []
+        for enrollment in enrollments:
+            course = enrollment.course
+            
+            # Calculate progress percentage based on topic completion
+            total_topics = Topic.objects.filter(
+                chapter__course=course
+            ).count()
+            
+            if total_topics > 0:
+                # Count completed topics
+                completed_topics = TopicProgress.objects.filter(
+                    student=user,
+                    topic__chapter__course=course,
+                    is_completed=True
+                ).count()
+                
+                progress_percentage = (completed_topics / total_topics) * 100
+            else:
+                # Fallback to chapter-based progress if no topics exist
+                total_chapters = course.chapters.count()
+                if total_chapters > 0:
+                    completed_chapters = Progress.objects.filter(
+                        student=user,
+                        course=course,
+                        chapter__isnull=False,
+                        is_completed=True
+                    ).values('chapter').distinct().count()
+                    progress_percentage = (completed_chapters / total_chapters) * 100
+                else:
+                    progress_percentage = 0
+            
+            course_data = CourseSerializer(course).data
+            course_data['enrolledAt'] = enrollment.enrolled_at.isoformat()
+            course_data['progress'] = round(progress_percentage, 2)
+            courses_data.append(course_data)
+        
+        return Response(courses_data)
