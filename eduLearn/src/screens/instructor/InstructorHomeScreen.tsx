@@ -13,6 +13,7 @@ import { InstructorStats } from '../../types/course';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { InstructorCourseCard } from '../../components/instructor/InstructorCourseCard';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 type InstructorHomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -109,11 +110,17 @@ export const InstructorHomeScreen: React.FC = () => {
                             {user?.username}!
                         </ThemedText>
                     </View>
-                    {user?.profile_image && (
+                    {user?.profile_image && getFullImageUrl(user.profile_image) ? (
                         <Image
-                            source={{ uri: user.profile_image }}
+                            source={{ uri: getFullImageUrl(user.profile_image)! }}
                             style={styles.profileImage}
                         />
+                    ) : (
+                        <View style={[styles.profileImagePlaceholder, { backgroundColor: '#FFFFFF' }]}>
+                            <ThemedText style={styles.profileInitial}>
+                                {(user?.name || user?.username || 'U').charAt(0).toUpperCase()}
+                            </ThemedText>
+                        </View>
                     )}
                 </View>
             </View>
@@ -235,6 +242,20 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         borderWidth: 2,
         borderColor: '#FFFFFF',
+    },
+    profileImagePlaceholder: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    profileInitial: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#3B82F6',
     },
     content: {
         padding: 20,

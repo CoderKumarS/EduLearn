@@ -28,12 +28,6 @@ class AuthService {
             // Step 2: Use user data from response (includes role)
             let user: User;
             if (userData) {
-                console.log('📋 Raw user data from login:', {
-                    first_name: userData.first_name,
-                    last_name: userData.last_name,
-                    username: userData.username,
-                });
-
                 // Backend now returns user data with role and profile image
                 user = {
                     id: userData.id?.toString() || '1',
@@ -46,12 +40,6 @@ class AuthService {
                     profile_image: userData.profile_image,
                     bio: userData.bio,
                 };
-                console.log('✅ User profile received from backend:', {
-                    role: user.role,
-                    name: user.name,
-                    hasProfileImage: !!user.profile_image,
-                    profileImage: user.profile_image
-                });
             } else {
                 // Fallback: Extract from JWT token
                 try {

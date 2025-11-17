@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     inputIcon: {
         position: 'absolute',
         left: 12,
-        top: 12,
+        top: 5,
         zIndex: 1,
         width: 40,
         height: 40,

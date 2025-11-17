@@ -11,6 +11,7 @@ export interface RecentCourse {
     title: string;
     description: string;
     thumbnail: string | null;
+    thumbnail_image: string | null;
     created_at: string;
     enrollment_count: number;
     average_rating: number | null;

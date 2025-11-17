@@ -21,6 +21,7 @@ import { instructorService } from '../../services/instructorService';
 import { InstructorDashboardData } from '../../types/instructor';
 import { handleApiError } from '../../utils/errorHandler';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import { getFullImageUrl, getCourseImageUrl } from '../../utils/imageUtils';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -31,6 +32,7 @@ export const InstructorHomeContent: React.FC = () => {
     const [dashboardData, setDashboardData] = useState<InstructorDashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         loadDashboardData();
@@ -71,302 +73,336 @@ export const InstructorHomeContent: React.FC = () => {
     }
 
     return (
-        <ScrollView
-            style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
-            refreshControl={
-                <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={handleRefresh}
-                    tintColor={theme.colors.primary}
-                />
-            }
-        >
-            {/* Hero Section */}
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            {/* Fixed Hero Section */}
             <View style={[styles.heroSection, { backgroundColor: theme.colors.primary }]}>
                 <View style={styles.welcomeHeader}>
-                    <View>
+                    <View style={styles.welcomeTextContainer}>
                         <ThemedText style={[styles.welcomeText, { color: '#FFFFFFCC' }]}>
                             Welcome back,
                         </ThemedText>
-                        <ThemedText style={[styles.heroTitle, { color: '#FFFFFF' }]}>
-                            {user?.username}!
+                        <ThemedText style={[styles.heroTitle, { color: '#FFFFFF' }]} numberOfLines={1}>
+                            {user?.name || user?.username}!
                         </ThemedText>
                     </View>
-                    {user?.profile_image && (
-                        <Image
-                            source={{ uri: user.profile_image }}
-                            style={styles.profileImage}
-                        />
-                    )}
+                    {(() => {
+                        const profileImageUrl = getFullImageUrl(user?.profile_image);
+                        return user?.profile_image && profileImageUrl && !imageError ? (
+                            <Image
+                                source={{ uri: profileImageUrl }}
+                                style={styles.profileImage}
+                                onError={(error) => {
+                                    console.log('❌ Profile image load error in dashboard:', error.nativeEvent);
+                                    console.log('Attempted URL:', profileImageUrl);
+                                    setImageError(true);
+                                }}
+                            />
+                        ) : (
+                            <View style={[styles.profileImagePlaceholder, { backgroundColor: '#FFFFFF' }]}>
+                                <ThemedText style={styles.profileInitial}>
+                                    {(user?.name || user?.username || 'U').charAt(0).toUpperCase()}
+                                </ThemedText>
+                            </View>
+                        );
+                    })()}
                 </View>
             </View>
 
-            {/* Statistics Cards */}
-            <View style={styles.statsSection}>
-                <View style={[styles.statCard, { backgroundColor: '#3B82F6' }]}>
-                    <View style={styles.statIconContainer}>
-                        <Ionicons name="book-outline" size={24} color="#FFFFFF" />
+            {/* Scrollable Content */}
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        tintColor={theme.colors.primary}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+            >
+
+                {/* Statistics Cards */}
+                <View style={styles.statsSection}>
+                    <View style={[styles.statCard, { backgroundColor: '#3B82F6' }]}>
+                        <View style={styles.statIconContainer}>
+                            <Ionicons name="book-outline" size={24} color="#FFFFFF" />
+                        </View>
+                        <ThemedText style={[styles.statValue, { color: '#FFFFFF' }]}>
+                            {dashboardData.stats.total_courses}
+                        </ThemedText>
+                        <ThemedText style={[styles.statLabel, { color: '#FFFFFFCC' }]}>
+                            Courses Created
+                        </ThemedText>
                     </View>
-                    <ThemedText style={[styles.statValue, { color: '#FFFFFF' }]}>
-                        {dashboardData.stats.total_courses}
-                    </ThemedText>
-                    <ThemedText style={[styles.statLabel, { color: '#FFFFFFCC' }]}>
-                        Courses Created
-                    </ThemedText>
-                </View>
 
-                <View style={[styles.statCard, { backgroundColor: '#10B981' }]}>
-                    <View style={styles.statIconContainer}>
-                        <Ionicons name="people-outline" size={24} color="#FFFFFF" />
+                    <View style={[styles.statCard, { backgroundColor: '#10B981' }]}>
+                        <View style={styles.statIconContainer}>
+                            <Ionicons name="people-outline" size={24} color="#FFFFFF" />
+                        </View>
+                        <ThemedText style={[styles.statValue, { color: '#FFFFFF' }]}>
+                            {dashboardData.stats.total_students}
+                        </ThemedText>
+                        <ThemedText style={[styles.statLabel, { color: '#FFFFFFCC' }]}>
+                            Students Enrolled
+                        </ThemedText>
                     </View>
-                    <ThemedText style={[styles.statValue, { color: '#FFFFFF' }]}>
-                        {dashboardData.stats.total_students}
-                    </ThemedText>
-                    <ThemedText style={[styles.statLabel, { color: '#FFFFFFCC' }]}>
-                        Students Enrolled
-                    </ThemedText>
-                </View>
 
-                <View style={[styles.statCard, { backgroundColor: '#F59E0B' }]}>
-                    <View style={styles.statIconContainer}>
-                        <Ionicons name="layers-outline" size={24} color="#FFFFFF" />
+                    <View style={[styles.statCard, { backgroundColor: '#F59E0B' }]}>
+                        <View style={styles.statIconContainer}>
+                            <Ionicons name="layers-outline" size={24} color="#FFFFFF" />
+                        </View>
+                        <ThemedText style={[styles.statValue, { color: '#FFFFFF' }]}>
+                            {dashboardData.stats.total_chapters}
+                        </ThemedText>
+                        <ThemedText style={[styles.statLabel, { color: '#FFFFFFCC' }]}>
+                            Chapters Created
+                        </ThemedText>
                     </View>
-                    <ThemedText style={[styles.statValue, { color: '#FFFFFF' }]}>
-                        {dashboardData.stats.total_chapters}
-                    </ThemedText>
-                    <ThemedText style={[styles.statLabel, { color: '#FFFFFFCC' }]}>
-                        Chapters Created
-                    </ThemedText>
                 </View>
-            </View>
 
-            {/* Recently Created Courses */}
-            {dashboardData.recent_courses.length > 0 && (
-                <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Recently Created Courses</ThemedText>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.horizontalScroll}
-                    >
-                        {dashboardData.recent_courses.map((course) => (
-                            <TouchableOpacity
-                                key={course.id}
-                                style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-                                onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
-                            >
-                                {course.thumbnail ? (
-                                    <Image source={{ uri: course.thumbnail }} style={styles.courseThumbnail} />
-                                ) : (
-                                    <View style={[styles.courseThumbnailPlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
-                                        <Ionicons name="book" size={32} color={theme.colors.primary} />
-                                    </View>
-                                )}
-                                <View style={styles.courseInfo}>
-                                    <ThemedText style={styles.courseTitle} numberOfLines={2}>
-                                        {course.title}
-                                    </ThemedText>
-                                    <View style={styles.courseStats}>
-                                        <View style={styles.courseStat}>
-                                            <Ionicons name="people" size={14} color={theme.colors.textSecondary} />
-                                            <ThemedText variant="secondary" style={styles.courseStatText}>
-                                                {course.enrollment_count}
-                                            </ThemedText>
-                                        </View>
-                                        {course.average_rating && (
-                                            <View style={styles.courseStat}>
-                                                <Ionicons name="star" size={14} color="#F59E0B" />
-                                                <ThemedText variant="secondary" style={styles.courseStatText}>
-                                                    {course.average_rating.toFixed(1)}
-                                                </ThemedText>
-                                            </View>
-                                        )}
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
-
-            {/* Recently Created Chapters */}
-            {dashboardData.recent_chapters.length > 0 && (
-                <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Recently Created Chapters</ThemedText>
-                    {dashboardData.recent_chapters.map((chapter) => (
-                        <RecentChapterCard
-                            key={chapter.id}
-                            chapter={chapter}
-                            onPress={() => {
-                                // Navigate to chapter detail or course detail
-                                navigation.navigate('CourseDetail', { courseId: chapter.course_id });
-                            }}
-                            onEdit={() => {
-                                // Navigate to edit chapter screen
-                                navigation.navigate('ManageCourse', { courseId: chapter.course_id });
-                            }}
-                        />
-                    ))}
-                </View>
-            )}
-
-            {/* Recent Student Activity */}
-            {dashboardData.recent_activities.length > 0 && (
-                <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Recent Student Activity</ThemedText>
-                    {dashboardData.recent_activities.map((activity) => (
-                        <StudentActivityItem
-                            key={activity.id}
-                            activity={activity}
-                            onPress={() => {
-                                navigation.navigate('CourseDetail', { courseId: activity.course_id });
-                            }}
-                        />
-                    ))}
-                </View>
-            )}
-
-            {/* My Top Performing Courses */}
-            {(dashboardData.my_top_courses.by_enrollment.length > 0 ||
-                dashboardData.my_top_courses.by_rating.length > 0) && (
+                {/* Recently Created Courses */}
+                {dashboardData.recent_courses.length > 0 && (
                     <View style={styles.section}>
-                        <ThemedText style={styles.sectionTitle}>My Top Performing Courses</ThemedText>
-
-                        {dashboardData.my_top_courses.by_enrollment.length > 0 && (
-                            <View style={styles.subsection}>
-                                <ThemedText style={styles.subsectionTitle}>By Enrollment</ThemedText>
-                                {dashboardData.my_top_courses.by_enrollment.map((course, index) => (
-                                    <CourseRankingCard
-                                        key={course.id}
-                                        course={course}
-                                        rank={index + 1}
-                                        metricType="enrollment"
-                                        showInstructor={false}
-                                        onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
-                                    />
-                                ))}
-                            </View>
-                        )}
-
-                        {dashboardData.my_top_courses.by_rating.length > 0 && (
-                            <View style={styles.subsection}>
-                                <ThemedText style={styles.subsectionTitle}>By Rating</ThemedText>
-                                {dashboardData.my_top_courses.by_rating.map((course, index) => (
-                                    <CourseRankingCard
-                                        key={course.id}
-                                        course={course}
-                                        rank={index + 1}
-                                        metricType="rating"
-                                        showInstructor={false}
-                                        onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
-                                    />
-                                ))}
-                            </View>
-                        )}
-                    </View>
-                )}
-
-            {/* Other Instructors' Courses */}
-            {dashboardData.other_instructors_courses.length > 0 && (
-                <View style={styles.section}>
-                    <ThemedText style={styles.sectionTitle}>Other Instructors' Courses</ThemedText>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.horizontalScroll}
-                    >
-                        {dashboardData.other_instructors_courses.map((course) => (
-                            <TouchableOpacity
-                                key={course.id}
-                                style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-                                onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
-                            >
-                                {course.thumbnail ? (
-                                    <Image source={{ uri: course.thumbnail }} style={styles.courseThumbnail} />
-                                ) : (
-                                    <View style={[styles.courseThumbnailPlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
-                                        <Ionicons name="book" size={32} color={theme.colors.primary} />
-                                    </View>
-                                )}
-                                <View style={styles.courseInfo}>
-                                    <ThemedText style={styles.courseTitle} numberOfLines={2}>
-                                        {course.title}
-                                    </ThemedText>
-                                    <View style={styles.instructorRow}>
-                                        <Ionicons name="person-outline" size={12} color={theme.colors.textSecondary} />
-                                        <ThemedText variant="secondary" style={styles.instructorText} numberOfLines={1}>
-                                            {course.instructor_name}
+                        <ThemedText style={styles.sectionTitle}>Recently Created Courses</ThemedText>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.horizontalScroll}
+                        >
+                            {dashboardData.recent_courses.map((course) => (
+                                <TouchableOpacity
+                                    key={course.id}
+                                    style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
+                                    onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                                >
+                                    {(course.thumbnail_image || course.thumbnail) ? (
+                                        <Image
+                                            source={{ uri: getFullImageUrl(course.thumbnail_image || course.thumbnail) || getCourseImageUrl(course.thumbnail_image || course.thumbnail, course.title, course.id) }}
+                                            style={styles.courseThumbnail}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View style={[styles.courseThumbnailPlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
+                                            <Ionicons name="book" size={32} color={theme.colors.primary} />
+                                        </View>
+                                    )}
+                                    <View style={styles.courseInfo}>
+                                        <ThemedText style={styles.courseTitle} numberOfLines={2}>
+                                            {course.title}
                                         </ThemedText>
-                                    </View>
-                                    <View style={styles.courseStats}>
-                                        <View style={styles.courseStat}>
-                                            <Ionicons name="people" size={14} color={theme.colors.textSecondary} />
-                                            <ThemedText variant="secondary" style={styles.courseStatText}>
-                                                {course.enrollment_count}
-                                            </ThemedText>
-                                        </View>
-                                        {course.average_rating && (
+                                        <View style={styles.courseStats}>
                                             <View style={styles.courseStat}>
-                                                <Ionicons name="star" size={14} color="#F59E0B" />
+                                                <Ionicons name="people" size={14} color={theme.colors.textSecondary} />
                                                 <ThemedText variant="secondary" style={styles.courseStatText}>
-                                                    {course.average_rating.toFixed(1)}
+                                                    {course.enrollment_count}
                                                 </ThemedText>
                                             </View>
-                                        )}
+                                            {course.average_rating && (
+                                                <View style={styles.courseStat}>
+                                                    <Ionicons name="star" size={14} color="#F59E0B" />
+                                                    <ThemedText variant="secondary" style={styles.courseStatText}>
+                                                        {course.average_rating.toFixed(1)}
+                                                    </ThemedText>
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
-
-            {/* Platform Top Ranking Courses */}
-            {(dashboardData.platform_top_courses.by_enrollment.length > 0 ||
-                dashboardData.platform_top_courses.by_rating.length > 0) && (
-                    <View style={styles.section}>
-                        <ThemedText style={styles.sectionTitle}>Platform Top Ranking Courses</ThemedText>
-
-                        {dashboardData.platform_top_courses.by_enrollment.length > 0 && (
-                            <View style={styles.subsection}>
-                                <ThemedText style={styles.subsectionTitle}>By Enrollment</ThemedText>
-                                {dashboardData.platform_top_courses.by_enrollment.map((course, index) => (
-                                    <CourseRankingCard
-                                        key={course.id}
-                                        course={course}
-                                        rank={index + 1}
-                                        metricType="enrollment"
-                                        showInstructor={true}
-                                        onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
-                                    />
-                                ))}
-                            </View>
-                        )}
-
-                        {dashboardData.platform_top_courses.by_rating.length > 0 && (
-                            <View style={styles.subsection}>
-                                <ThemedText style={styles.subsectionTitle}>By Rating</ThemedText>
-                                {dashboardData.platform_top_courses.by_rating.map((course, index) => (
-                                    <CourseRankingCard
-                                        key={course.id}
-                                        course={course}
-                                        rank={index + 1}
-                                        metricType="rating"
-                                        showInstructor={true}
-                                        onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
-                                    />
-                                ))}
-                            </View>
-                        )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
                     </View>
                 )}
-        </ScrollView>
+
+                {/* Recently Created Chapters */}
+                {dashboardData.recent_chapters.length > 0 && (
+                    <View style={styles.section}>
+                        <ThemedText style={styles.sectionTitle}>Recently Created Chapters</ThemedText>
+                        {dashboardData.recent_chapters.map((chapter) => (
+                            <RecentChapterCard
+                                key={chapter.id}
+                                chapter={chapter}
+                                onPress={() => {
+                                    // Navigate to chapter detail or course detail
+                                    navigation.navigate('CourseDetail', { courseId: chapter.course_id });
+                                }}
+                                onEdit={() => {
+                                    // Navigate to edit chapter screen
+                                    navigation.navigate('ManageCourse', { courseId: chapter.course_id });
+                                }}
+                            />
+                        ))}
+                    </View>
+                )}
+
+                {/* Recent Student Activity */}
+                {dashboardData.recent_activities.length > 0 && (
+                    <View style={styles.section}>
+                        <ThemedText style={styles.sectionTitle}>Recent Student Activity</ThemedText>
+                        {dashboardData.recent_activities.map((activity) => (
+                            <StudentActivityItem
+                                key={activity.id}
+                                activity={activity}
+                                onPress={() => {
+                                    navigation.navigate('CourseDetail', { courseId: activity.course_id });
+                                }}
+                            />
+                        ))}
+                    </View>
+                )}
+
+                {/* My Top Performing Courses */}
+                {(dashboardData.my_top_courses.by_enrollment.length > 0 ||
+                    dashboardData.my_top_courses.by_rating.length > 0) && (
+                        <View style={styles.section}>
+                            <ThemedText style={styles.sectionTitle}>My Top Performing Courses</ThemedText>
+
+                            {dashboardData.my_top_courses.by_enrollment.length > 0 && (
+                                <View style={styles.subsection}>
+                                    <ThemedText style={styles.subsectionTitle}>By Enrollment</ThemedText>
+                                    {dashboardData.my_top_courses.by_enrollment.map((course, index) => (
+                                        <CourseRankingCard
+                                            key={course.id}
+                                            course={course}
+                                            rank={index + 1}
+                                            metricType="enrollment"
+                                            showInstructor={false}
+                                            onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+
+                            {dashboardData.my_top_courses.by_rating.length > 0 && (
+                                <View style={styles.subsection}>
+                                    <ThemedText style={styles.subsectionTitle}>By Rating</ThemedText>
+                                    {dashboardData.my_top_courses.by_rating.map((course, index) => (
+                                        <CourseRankingCard
+                                            key={course.id}
+                                            course={course}
+                                            rank={index + 1}
+                                            metricType="rating"
+                                            showInstructor={false}
+                                            onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                {/* Other Instructors' Courses */}
+                {dashboardData.other_instructors_courses.length > 0 && (
+                    <View style={styles.section}>
+                        <ThemedText style={styles.sectionTitle}>Other Instructors' Courses</ThemedText>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.horizontalScroll}
+                        >
+                            {dashboardData.other_instructors_courses.map((course) => (
+                                <TouchableOpacity
+                                    key={course.id}
+                                    style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
+                                    onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                                >
+                                    {(course.thumbnail_image || course.thumbnail) ? (
+                                        <Image
+                                            source={{ uri: getFullImageUrl(course.thumbnail_image || course.thumbnail) || getCourseImageUrl(course.thumbnail_image || course.thumbnail, course.title, course.id) }}
+                                            style={styles.courseThumbnail}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View style={[styles.courseThumbnailPlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
+                                            <Ionicons name="book" size={32} color={theme.colors.primary} />
+                                        </View>
+                                    )}
+                                    <View style={styles.courseInfo}>
+                                        <ThemedText style={styles.courseTitle} numberOfLines={2}>
+                                            {course.title}
+                                        </ThemedText>
+                                        <View style={styles.instructorRow}>
+                                            <Ionicons name="person-outline" size={12} color={theme.colors.textSecondary} />
+                                            <ThemedText variant="secondary" style={styles.instructorText} numberOfLines={1}>
+                                                {course.instructor_name}
+                                            </ThemedText>
+                                        </View>
+                                        <View style={styles.courseStats}>
+                                            <View style={styles.courseStat}>
+                                                <Ionicons name="people" size={14} color={theme.colors.textSecondary} />
+                                                <ThemedText variant="secondary" style={styles.courseStatText}>
+                                                    {course.enrollment_count}
+                                                </ThemedText>
+                                            </View>
+                                            {course.average_rating && (
+                                                <View style={styles.courseStat}>
+                                                    <Ionicons name="star" size={14} color="#F59E0B" />
+                                                    <ThemedText variant="secondary" style={styles.courseStatText}>
+                                                        {course.average_rating.toFixed(1)}
+                                                    </ThemedText>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* Platform Top Ranking Courses */}
+                {(dashboardData.platform_top_courses.by_enrollment.length > 0 ||
+                    dashboardData.platform_top_courses.by_rating.length > 0) && (
+                        <View style={styles.section}>
+                            <ThemedText style={styles.sectionTitle}>Platform Top Ranking Courses</ThemedText>
+
+                            {dashboardData.platform_top_courses.by_enrollment.length > 0 && (
+                                <View style={styles.subsection}>
+                                    <ThemedText style={styles.subsectionTitle}>By Enrollment</ThemedText>
+                                    {dashboardData.platform_top_courses.by_enrollment.map((course, index) => (
+                                        <CourseRankingCard
+                                            key={course.id}
+                                            course={course}
+                                            rank={index + 1}
+                                            metricType="enrollment"
+                                            showInstructor={true}
+                                            onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+
+                            {dashboardData.platform_top_courses.by_rating.length > 0 && (
+                                <View style={styles.subsection}>
+                                    <ThemedText style={styles.subsectionTitle}>By Rating</ThemedText>
+                                    {dashboardData.platform_top_courses.by_rating.map((course, index) => (
+                                        <CourseRankingCard
+                                            key={course.id}
+                                            course={course}
+                                            rank={index + 1}
+                                            metricType="rating"
+                                            showInstructor={true}
+                                            onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+                    )}
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
     scrollView: {
         flex: 1,
+    },
+    scrollContent: {
+        paddingTop: 8,
     },
     errorContainer: {
         flex: 1,
@@ -379,15 +415,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     heroSection: {
-        paddingVertical: 40,
+        paddingTop: 50,
+        paddingBottom: 24,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 8,
     },
     welcomeHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 12,
+    },
+    welcomeTextContainer: {
+        flex: 1,
     },
     welcomeText: {
         fontSize: 16,
@@ -403,6 +452,20 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         borderWidth: 3,
         borderColor: '#FFFFFF',
+    },
+    profileImagePlaceholder: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    profileInitial: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#3B82F6',
     },
     statsSection: {
         flexDirection: 'row',
