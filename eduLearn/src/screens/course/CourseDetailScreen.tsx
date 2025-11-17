@@ -230,10 +230,43 @@ export const CourseDetailScreen: React.FC<CourseDetailScreenProps> = ({
     }
 
     if (!course) {
+        // Show login prompt if user is not authenticated
+        if (!isAuthenticated) {
+            return (
+                <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+                    <View style={[styles.loginPromptContainer, { backgroundColor: theme.colors.card }]}>
+                        <Ionicons name="lock-closed-outline" size={64} color={theme.colors.primary} />
+                        <ThemedText style={styles.loginPromptTitle}>Login Required</ThemedText>
+                        <ThemedText variant="secondary" style={styles.loginPromptText}>
+                            Please sign in to view course details and access learning materials.
+                        </ThemedText>
+                        <View style={styles.loginPromptActions}>
+                            <Button
+                                title="Sign In"
+                                onPress={() => onNavigateToLogin?.()}
+                                style={styles.loginButton}
+                            />
+                            <Button
+                                title="Go Back"
+                                onPress={onNavigateBack}
+                                variant="outline"
+                                style={styles.backButtonAlt}
+                            />
+                        </View>
+                    </View>
+                </SafeAreaView>
+            );
+        }
+
+        // Show error if authenticated but course not found
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
                 <View style={styles.errorContainer}>
-                    <ThemedText>Course not found.</ThemedText>
+                    <Ionicons name="alert-circle-outline" size={64} color={theme.colors.error} />
+                    <ThemedText style={styles.errorTitle}>Course Not Found</ThemedText>
+                    <ThemedText variant="secondary" style={styles.errorText}>
+                        The course you're looking for doesn't exist or has been removed.
+                    </ThemedText>
                     <Button title="Go Back" onPress={onNavigateBack} />
                 </View>
             </SafeAreaView>
@@ -644,6 +677,48 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         gap: 16,
+        padding: 20,
+    },
+    errorTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        marginTop: 16,
+    },
+    errorText: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    loginPromptContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+        margin: 20,
+        borderRadius: 16,
+        gap: 16,
+    },
+    loginPromptTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        marginTop: 16,
+    },
+    loginPromptText: {
+        fontSize: 16,
+        textAlign: 'center',
+        lineHeight: 24,
+        marginBottom: 8,
+    },
+    loginPromptActions: {
+        width: '100%',
+        gap: 12,
+        marginTop: 8,
+    },
+    loginButton: {
+        width: '100%',
+    },
+    backButtonAlt: {
+        width: '100%',
     },
     courseInfoSection: {
         marginBottom: 24,

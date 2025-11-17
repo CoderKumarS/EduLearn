@@ -55,7 +55,7 @@ const ProfileScreen: React.FC = () => {
         try {
             setLoadingStats(true);
             setStatsError(null);
-            const userStats = await profileService.getUserStats(user.id, user.role);
+            const userStats = await profileService.getUserStats(Number(user.id), user.role);
             setStats(userStats);
         } catch (error) {
             const apiError = handleApiError(error);
