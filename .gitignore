@@ -7,3 +7,5 @@ edulean/pages
 Markdown
 *.pyc
 __pycache__/
+Backend/.env
+edulean/.env

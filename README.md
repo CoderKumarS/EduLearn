@@ -1655,19 +1655,6 @@ ALTER TABLE courses_quizattempt ADD CONSTRAINT check_percentage CHECK (percentag
 | DevOps Engineer | 25% | Deployment, CI/CD |
 | Project Manager | 25% | Planning, Coordination |
 
-### Cost Estimates
-
-| Category | Estimated Cost |
-|----------|----------------|
-| Development (872 hours @ $50/hr) | $43,600 |
-| Design (80 hours @ $40/hr) | $3,200 |
-| QA (160 hours @ $35/hr) | $5,600 |
-| DevOps (40 hours @ $60/hr) | $2,400 |
-| Infrastructure (4 months) | $800 |
-| AI API Costs (4 months) | $400 |
-| Miscellaneous | $1,000 |
-| **Total Estimated Cost** | **$57,000** |
-
 ### Risk Management
 
 | Risk | Probability | Impact | Mitigation Strategy |
