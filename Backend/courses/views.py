@@ -1376,8 +1376,47 @@ class DashboardViewSet(viewsets.ViewSet):
         enrollments = Enrollment.objects.filter(student=user, is_active=True)
         enrolled_courses_count = enrollments.count()
         
-        # Get completed courses
-        completed_courses_count = enrollments.filter(completion_date__isnull=False).count()
+        # Get completed courses - count courses where user has 100% progress
+        # Use the same logic as completed-courses endpoint
+        completed_courses_count = 0
+        for enrollment in enrollments:
+            course = enrollment.course
+            
+            # Calculate progress percentage based on topic completion (same as completed-courses endpoint)
+            total_topics = Topic.objects.filter(
+                chapter__course=course
+            ).count()
+            
+            if total_topics > 0:
+                # Count completed topics
+                completed_topics = TopicProgress.objects.filter(
+                    student=user,
+                    topic__chapter__course=course,
+                    is_completed=True
+                ).count()
+                
+                progress_percentage = (completed_topics / total_topics) * 100
+            else:
+                # Fallback to chapter-based progress if no topics exist
+                total_chapters = course.chapters.count()
+                if total_chapters > 0:
+                    completed_chapters = Progress.objects.filter(
+                        student=user,
+                        course=course,
+                        chapter__isnull=False,
+                        is_completed=True
+                    ).values('chapter').distinct().count()
+                    progress_percentage = (completed_chapters / total_chapters) * 100
+                else:
+                    progress_percentage = 0
+            
+            # If progress is 100%, count as completed
+            if progress_percentage >= 100:
+                completed_courses_count += 1
+                # Optionally set completion_date if not already set
+                if not enrollment.completion_date:
+                    enrollment.completion_date = timezone.now()
+                    enrollment.save()
         
         # Calculate total learning time from Progress
         total_learning_time = Progress.objects.filter(student=user).aggregate(
@@ -1539,6 +1578,70 @@ class DashboardViewSet(viewsets.ViewSet):
         courses_data.sort(key=lambda x: x.get('enrolledAt', ''), reverse=True)
         
         return Response(courses_data)
+    
+    @action(detail=False, methods=['get'], url_path='completed-courses')
+    def completed_courses(self, request):
+        """Get courses the user has completed (100% progress)"""
+        user = request.user
+        
+        # Get all active enrollments
+        enrollments = Enrollment.objects.filter(
+            student=user,
+            is_active=True
+        ).select_related('course', 'course__instructor').prefetch_related('course__chapters')
+        
+        completed_courses_data = []
+        for enrollment in enrollments:
+            course = enrollment.course
+            
+            # Calculate progress percentage based on topic completion
+            from django.db.models import Count, Q
+            
+            total_topics = Topic.objects.filter(
+                chapter__course=course
+            ).count()
+            
+            if total_topics > 0:
+                # Count completed topics
+                completed_topics = TopicProgress.objects.filter(
+                    student=user,
+                    topic__chapter__course=course,
+                    is_completed=True
+                ).count()
+                
+                progress_percentage = (completed_topics / total_topics) * 100
+            else:
+                # Fallback to chapter-based progress if no topics exist
+                total_chapters = course.chapters.count()
+                if total_chapters > 0:
+                    completed_chapters = Progress.objects.filter(
+                        student=user,
+                        course=course,
+                        chapter__isnull=False,
+                        is_completed=True
+                    ).values('chapter').distinct().count()
+                    progress_percentage = (completed_chapters / total_chapters) * 100
+                else:
+                    progress_percentage = 0
+            
+            # Only include courses with 100% progress
+            if progress_percentage >= 100:
+                course_data = CourseSerializer(course).data
+                course_data['progress'] = 100
+                course_data['enrolledAt'] = enrollment.enrolled_at.isoformat()
+                course_data['completedAt'] = enrollment.completion_date.isoformat() if enrollment.completion_date else timezone.now().isoformat()
+                
+                # Set completion_date if not already set
+                if not enrollment.completion_date:
+                    enrollment.completion_date = timezone.now()
+                    enrollment.save()
+                
+                completed_courses_data.append(course_data)
+        
+        # Sort by completion date (most recent first)
+        completed_courses_data.sort(key=lambda x: x.get('completedAt', ''), reverse=True)
+        
+        return Response(completed_courses_data)
     
     @action(detail=False, methods=['get'])
     def popular(self, request):

@@ -31,7 +31,17 @@ SECRET_KEY = env('SECRET_KEY')
 # DEBUG = True
 DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = ['*']
+# Allowed Hosts - Load from environment variable
+ALLOWED_HOSTS_ENV = env('ALLOWED_HOSTS', default='localhost,127.0.0.1')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
+
+# Add deployed URLs to allowed hosts if they exist
+DEPLOYED_BACKEND_URL = env('DEPLOYED_BACKEND_URL', default='')
+if DEPLOYED_BACKEND_URL:
+    from urllib.parse import urlparse
+    deployed_host = urlparse(DEPLOYED_BACKEND_URL).netloc
+    if deployed_host and deployed_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(deployed_host)
 
 
 # Application definition
@@ -48,6 +58,7 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'courses',
+    'tutor',
     'django_extensions',
     'corsheaders',
 ]
@@ -188,9 +199,35 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",      # React dev server
-#     "http://127.0.0.1:3000",
-# ]
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration
+DEPLOYED_FRONTEND_URL = env('DEPLOYED_FRONTEND_URL', default='')
+
+# Build CORS allowed origins list
+CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL,  # Already defined above
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Add deployed frontend URL if configured
+if DEPLOYED_FRONTEND_URL:
+    CORS_ALLOWED_ORIGINS.append(DEPLOYED_FRONTEND_URL)
+
+# For development, you can use CORS_ALLOW_ALL_ORIGINS = True
+# For production, use the specific origins above
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all in DEBUG mode
 CORS_ALLOW_CREDENTIALS = True
+
+# AI Tutor Configuration
+AI_PROVIDER = env('AI_PROVIDER', default='gemini')  # 'gemini' or 'openai'
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+
+# AI Tutor Settings
+AI_TUTOR_MAX_MESSAGE_LENGTH = 2000
+AI_TUTOR_MAX_CONTEXT_MESSAGES = 10
+AI_TUTOR_REQUEST_TIMEOUT = 30  # seconds
+AI_TUTOR_RATE_LIMIT = 60  # requests per minute per user
+
+# Streaming support (for future implementation)
+AI_TUTOR_ENABLE_STREAMING = env.bool('AI_TUTOR_ENABLE_STREAMING', default=False)
