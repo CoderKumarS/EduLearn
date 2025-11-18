@@ -1,15 +1,111 @@
 import api from './api';
-import { ChatMessage, ChatSession, AITutorResponse, ChatContext } from '../types/chat';
+import { ChatMessage, ChatSession, ChatContext } from '../types/chat';
 
 class AITutorService {
-    // Chat Sessions
-    async createChatSession(context?: ChatContext): Promise<ChatSession> {
+    // Create new conversation
+    async createConversation(title?: string, courseId?: number): Promise<{ id: string; created_at: string }> {
         try {
-            const response = await api.post('/ai-tutor/sessions/', { context });
+            const response = await api.post('/tutor/conversations/', {
+                title: title || 'New Conversation',
+                course_id: courseId,
+            });
             return response.data;
         } catch (error) {
+            console.error('Error creating conversation:', error);
+            throw error;
+        }
+    }
+
+    // Get all conversations
+    async getConversations(): Promise<any[]> {
+        try {
+            const response = await api.get('/tutor/conversations/');
+            return response.data.conversations || [];
+        } catch (error) {
+            console.error('Error fetching conversations:', error);
+            return [];
+        }
+    }
+
+    // Get conversation details with messages
+    async getConversation(conversationId: string): Promise<any> {
+        try {
+            const response = await api.get(`/tutor/conversations/${conversationId}/`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching conversation:', error);
+            throw error;
+        }
+    }
+
+    // Get messages for a conversation
+    async getMessages(conversationId: string): Promise<any[]> {
+        try {
+            const response = await api.get(`/tutor/conversations/${conversationId}/messages/`);
+            return response.data.messages || [];
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+            return [];
+        }
+    }
+
+    // Send message to AI Tutor
+    async sendMessage(
+        message: string,
+        conversationId?: string,
+        courseId?: number,
+        chapterId?: number
+    ): Promise<{
+        conversation_id: string;
+        message_id: string;
+        response: string;
+        timestamp: string;
+    }> {
+        try {
+            const payload: any = { message: message?.trim() || '' };
+
+            if (conversationId) {
+                payload.conversation_id = conversationId;
+            }
+            if (courseId) {
+                payload.course_id = courseId;
+            }
+            if (chapterId) {
+                payload.chapter_id = chapterId;
+            }
+            const response = await api.post('/tutor/chat/', payload);
+            return response.data;
+        } catch (error: any) {
+            console.error('Error sending message to AI Tutor:', error);
+            console.error('Error response:', error.response?.data);
+
+            // Handle specific error cases
+            if (error.response?.status === 503) {
+                throw new Error('AI service is temporarily unavailable. Please try again later.');
+            } else if (error.response?.status === 429) {
+                const retryAfter = error.response?.data?.retry_after || 60;
+                throw new Error(`Rate limit exceeded. Please wait ${retryAfter} seconds.`);
+            } else if (error.response?.status === 401) {
+                throw new Error('Please log in to use the AI Tutor.');
+            }
+
+            throw new Error(error.response?.data?.error || 'Failed to send message');
+        }
+    }
+
+    // Legacy methods for backward compatibility
+    async createChatSession(context?: ChatContext, courseId?: number): Promise<ChatSession> {
+        try {
+            const conversation = await this.createConversation('New Chat', courseId);
+            return {
+                id: conversation.id,
+                userId: 'current-user',
+                startedAt: conversation.created_at,
+                messages: [],
+                context,
+            };
+        } catch (error) {
             console.error('Error creating chat session:', error);
-            // Return mock session
             return {
                 id: `session-${Date.now()}`,
                 userId: 'current-user',
@@ -21,56 +117,45 @@ class AITutorService {
     }
 
     async getChatSession(sessionId: string): Promise<ChatSession> {
-        const response = await api.get(`/ai-tutor/sessions/${sessionId}/`);
-        return response.data;
+        try {
+            const conversation = await this.getConversation(sessionId);
+            return {
+                id: conversation.id,
+                userId: conversation.student,
+                startedAt: conversation.created_at,
+                messages: conversation.messages || [],
+                context: conversation.course ? { currentCourse: conversation.course.toString() } : undefined,
+            };
+        } catch (error) {
+            throw error;
+        }
     }
 
-    async getChatSessions(userId: string): Promise<ChatSession[]> {
+    async getChatSessions(): Promise<ChatSession[]> {
         try {
-            const response = await api.get(`/ai-tutor/sessions/?user=${userId}`);
-            return response.data;
+            const conversations = await this.getConversations();
+            return conversations.map(conv => ({
+                id: conv.id,
+                userId: conv.student,
+                startedAt: conv.created_at,
+                messages: [],
+                context: conv.course ? { currentCourse: conv.course.toString() } : undefined,
+            }));
         } catch (error) {
             console.error('Error fetching chat sessions:', error);
             return [];
         }
     }
 
-    async endChatSession(sessionId: string, rating?: number): Promise<void> {
-        await api.patch(`/ai-tutor/sessions/${sessionId}/`, {
-            endedAt: new Date().toISOString(),
-            rating,
-        });
-    }
-
-    // Send Message to AI Tutor
-    async sendMessage(
-        sessionId: string,
-        message: string,
-        context?: ChatContext
-    ): Promise<AITutorResponse> {
-        try {
-            const response = await api.post(`/ai-tutor/sessions/${sessionId}/messages/`, {
-                message,
-                context,
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error sending message to AI Tutor:', error);
-            // Return mock response
-            return {
-                message: this.generateMockResponse(message),
-                confidence: 0.85,
-                sources: [],
-                relatedTopics: [],
-            };
-        }
-    }
-
-    // Get Chat History
     async getChatHistory(sessionId: string): Promise<ChatMessage[]> {
         try {
-            const response = await api.get(`/ai-tutor/sessions/${sessionId}/messages/`);
-            return response.data;
+            const messages = await this.getMessages(sessionId);
+            return messages.map(msg => ({
+                id: msg.id,
+                message: msg.content,
+                isUser: msg.role === 'user',
+                timestamp: msg.timestamp,
+            }));
         } catch (error) {
             console.error('Error fetching chat history:', error);
             return [];
@@ -93,34 +178,6 @@ class AITutorService {
         await api.post(`/ai-tutor/sessions/${sessionId}/messages/${messageId}/feedback/`, {
             feedback,
         });
-    }
-
-    // Helper method to generate mock responses
-    private generateMockResponse(userMessage: string): string {
-        const responses = [
-            "That's a great question! Let me help you understand this concept better.",
-            "I understand what you're asking. Here's what you need to know...",
-            "Let me break this down for you in a simple way.",
-            "That's an important topic. Let me explain it step by step.",
-            "I can help you with that. Here's a detailed explanation...",
-        ];
-
-        // Simple keyword-based responses
-        const lowerMessage = userMessage.toLowerCase();
-
-        if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
-            return "I'm here to help! " + responses[Math.floor(Math.random() * responses.length)];
-        }
-
-        if (lowerMessage.includes('explain') || lowerMessage.includes('what')) {
-            return responses[Math.floor(Math.random() * responses.length)];
-        }
-
-        if (lowerMessage.includes('example')) {
-            return "Sure! Let me give you a practical example to illustrate this concept.";
-        }
-
-        return responses[Math.floor(Math.random() * responses.length)];
     }
 
     // Get Suggested Questions

@@ -22,6 +22,7 @@ import { Button } from '../../components/common/Button';
 import courseService from '../../services/courseService';
 import cacheManager from '../../utils/cacheManager';
 import api from '../../services/api';
+import { getImageUrl } from '../../utils/imageUtils';
 
 export const StudentDashboardNew: React.FC = () => {
     const { theme } = useTheme();
@@ -54,7 +55,8 @@ export const StudentDashboardNew: React.FC = () => {
     useEffect(() => {
         // Only load data if user is authenticated
         if (isAuthenticated && user) {
-            loadData();
+            // Temporarily bypass cache to get fresh data
+            loadData(false);
         } else {
             setLoading(false);
         }
@@ -124,9 +126,8 @@ export const StudentDashboardNew: React.FC = () => {
 
     const handleCompletedPress = async () => {
         try {
-            // For now, filter enrolled courses with 100% progress
-            const courses = await courseService.getContinueLearning();
-            const completed = courses.filter((c: any) => c.progress === 100);
+            // Fetch completed courses from the dedicated endpoint
+            const completed = await courseService.getCompletedCourses();
             setCompletedCourses(completed);
             setShowCompletedModal(true);
         } catch (error) {
@@ -242,6 +243,7 @@ export const StudentDashboardNew: React.FC = () => {
         const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EC4899', '#F97316'];
         const colorIndex = item.id % colors.length;
         const gradientColor = colors[colorIndex];
+        const imageUrl = getImageUrl(item.thumbnail_image);
 
         return (
             <TouchableOpacity
@@ -252,8 +254,12 @@ export const StudentDashboardNew: React.FC = () => {
                     navigation.navigate('CourseDetail', { courseId: item.id });
                 }}
             >
-                {item.thumbnail_image ? (
-                    <Image source={{ uri: item.thumbnail_image }} style={styles.modalCourseImage} />
+                {imageUrl ? (
+                    <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.modalCourseImage}
+                        resizeMode="cover"
+                    />
                 ) : (
                     <LinearGradient
                         colors={[gradientColor, `${gradientColor}CC`]}

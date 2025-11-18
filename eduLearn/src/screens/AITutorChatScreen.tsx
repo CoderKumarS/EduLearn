@@ -39,7 +39,7 @@ export const AITutorChatScreen: React.FC<AITutorChatScreenProps> = ({
 
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [sessionId] = useState(`session-${Date.now()}`);
+    const [conversationId, setConversationId] = useState<string | undefined>();
 
     // Auto-scroll to latest message
     useEffect(() => {
@@ -68,12 +68,17 @@ export const AITutorChatScreen: React.FC<AITutorChatScreenProps> = ({
         setIsLoading(true);
 
         try {
-            // Call AI Tutor service
-            const response = await aiTutorService.sendMessage(sessionId, userMessage.message);
+            // Call AI Tutor service - message first, then conversationId
+            const response = await aiTutorService.sendMessage(userMessage.message, conversationId);
+
+            // Update conversation ID if this is the first message
+            if (!conversationId) {
+                setConversationId(response.conversation_id);
+            }
 
             const aiResponse: ChatMessage = {
-                id: `ai-${Date.now()}`,
-                message: response.message,
+                id: response.message_id,
+                message: response.response,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 isUser: false,
             };
@@ -105,7 +110,7 @@ export const AITutorChatScreen: React.FC<AITutorChatScreenProps> = ({
     );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <KeyboardAvoidingView
                 style={styles.keyboardAvoid}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -245,6 +250,7 @@ const styles = StyleSheet.create({
     },
     messagesList: {
         paddingVertical: 16,
+        paddingHorizontal: 16,
     },
     loadingContainer: {
         flexDirection: 'row',

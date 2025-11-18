@@ -18,6 +18,7 @@ import { Course, Enrollment } from '../../types/course';
 import { handleApiError } from '../../utils/errorHandler';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { getCourseImageUrl } from '../../utils/imageUtils';
 
 interface InstructorDashboardProps {
     onNavigateBack: () => void;
@@ -115,8 +116,9 @@ export const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 activeOpacity={0.7}
             >
                 <Image
-                    source={{ uri: course.imageUrl || 'https://via.placeholder.com/80' }}
+                    source={{ uri: getCourseImageUrl(course.thumbnail_image, course.title, course.id) }}
                     style={styles.courseImage}
+                    resizeMode="cover"
                 />
                 <View style={styles.courseInfo}>
                     <ThemedText style={styles.courseListTitle} numberOfLines={2}>

@@ -114,6 +114,11 @@ class CourseService {
         return response.data.results || response.data;
     }
 
+    async getCompletedCourses(): Promise<any[]> {
+        const response = await api.get('/dashboard/completed-courses/');
+        return response.data || [];
+    }
+
     async getCategories(): Promise<any[]> {
         const response = await api.get('/categories/');
         return response.data.results || response.data;

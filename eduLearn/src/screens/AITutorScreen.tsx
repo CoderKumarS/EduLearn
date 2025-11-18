@@ -28,13 +28,20 @@ const AITutorScreen: React.FC = () => {
     ]);
     const [isLoading, setIsLoading] = useState<boolean>(Boolean(false));
 
+    const [conversationId, setConversationId] = useState<string | undefined>();
+    const [error, setError] = useState<string>('');
+
     const handleSendMessage = async () => {
-        if (!message.trim()) return;
+        const trimmedMessage = message.trim();
+        if (!trimmedMessage) {
+            setError('Please enter a message');
+            return;
+        }
 
         // Add user message
         const userMessage: Message = {
             id: Date.now().toString(),
-            text: message,
+            text: trimmedMessage,
             isUser: Boolean(true),
             timestamp: new Date(),
         };
@@ -42,18 +49,43 @@ const AITutorScreen: React.FC = () => {
         setMessages(prev => [...prev, userMessage]);
         setMessage('');
         setIsLoading(Boolean(true));
+        setError('');
 
-        // Simulate AI response
-        setTimeout(() => {
+        try {
+            // Import the AI tutor service
+            const { aiTutorService } = await import('../services/aiTutorService');
+
+            console.log('Sending message:', trimmedMessage);
+
+            // Send message to backend
+            const response = await aiTutorService.sendMessage(
+                trimmedMessage,
+                conversationId
+            );
+
+            // Update conversation ID if this is the first message
+            if (!conversationId) {
+                setConversationId(response.conversation_id);
+            }
+
+            // Add AI response
             const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                text: 'I understand your question. In a real implementation, I would provide a detailed answer based on AI processing. This is a demo response.',
+                id: response.message_id,
+                text: response.response,
                 isUser: Boolean(false),
-                timestamp: new Date(),
+                timestamp: new Date(response.timestamp),
             };
             setMessages(prev => [...prev, aiMessage]);
+        } catch (err: any) {
+            console.error('Error sending message:', err);
+            setError(err.message || 'Failed to send message. Please try again.');
+
+            // Remove the user message on error
+            setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+            setMessage(currentMessage); // Restore the message
+        } finally {
             setIsLoading(Boolean(false));
-        }, 1500);
+        }
     };
 
     const renderMessage = (msg: Message) => (
@@ -120,6 +152,15 @@ const AITutorScreen: React.FC = () => {
                         Ask me anything about your courses
                     </ThemedText>
                 </ThemedView>
+
+                {/* Error Message */}
+                {error && (
+                    <ThemedView style={styles.errorContainer}>
+                        <ThemedText style={styles.errorText}>
+                            ⚠️ {error}
+                        </ThemedText>
+                    </ThemedView>
+                )}
 
                 {/* Messages */}
                 <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
@@ -214,6 +255,18 @@ const styles = StyleSheet.create({
     emptyState: {
         textAlign: 'center',
         marginTop: 40,
+    },
+    errorContainer: {
+        padding: 12,
+        margin: 16,
+        backgroundColor: '#fee',
+        borderRadius: 8,
+        borderLeftWidth: 4,
+        borderLeftColor: '#c33',
+    },
+    errorText: {
+        color: '#c33',
+        fontSize: 14,
     },
 });
 

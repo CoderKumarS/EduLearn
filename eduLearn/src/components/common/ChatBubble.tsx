@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         marginBottom: 16,
-        paddingHorizontal: 16,
+        width: '100%',
     },
     userContainer: {
         justifyContent: 'flex-end',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     bubbleWrapper: {
-        maxWidth: '75%',
+        maxWidth: '80%',
     },
     bubble: {
         padding: 12,
@@ -134,6 +134,7 @@ const styles = StyleSheet.create({
     },
     timestamp: {
         marginTop: 4,
+        fontSize: 11,
     },
     userTimestamp: {
         textAlign: 'right',
@@ -142,6 +143,6 @@ const styles = StyleSheet.create({
         textAlign: 'left',
     },
     spacer: {
-        width: 44,
+        width: 0,
     },
 });
