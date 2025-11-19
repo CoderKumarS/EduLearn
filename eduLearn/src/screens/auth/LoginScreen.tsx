@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, TouchableOpacity, View, Animated } from 'react-native';
+import { StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, View, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ThemedView } from '../../components/common/ThemedView';
 import { ThemedText } from '../../components/common/ThemedText';

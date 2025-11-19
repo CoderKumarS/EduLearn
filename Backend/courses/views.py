@@ -656,7 +656,6 @@ class TopicViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """Override create to automatically calculate order and log validation errors"""
-        print(f"Received topic data: {request.data}")
         
         # Auto-calculate order if not provided or if there's a conflict
         data = request.data.copy()

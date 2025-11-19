@@ -125,6 +125,11 @@ const CoursesScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            {/* Header */}
+            <View style={styles.header}>
+                <ThemedText style={styles.headerTitle}>Explore Courses</ThemedText>
+            </View>
+
             {/* Search Bar and Filters */}
             <View style={[styles.stickySection, { backgroundColor: theme.colors.background }]}>
                 <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
@@ -228,8 +233,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    header: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    headerTitle: {
+        fontSize: 28,
+        fontWeight: '700',
+    },
     stickySection: {
-        paddingTop: 12,
         paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
