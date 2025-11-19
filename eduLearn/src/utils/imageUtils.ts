@@ -49,25 +49,20 @@ export const getFullImageUrl = getImageUrl;
  * @param imagePath - Course thumbnail image path
  * @param courseTitle - Course title for generating placeholder
  * @param courseId - Course ID for color variation
- * @returns Image URL or placeholder URL
+ * @returns Image URL or null (let the component handle placeholder)
  */
 export const getCourseImageUrl = (
     imagePath: string | null | undefined,
     courseTitle?: string,
     courseId?: number
-): string => {
+): string | null => {
     const imageUrl = getImageUrl(imagePath);
 
     if (imageUrl) {
         return imageUrl;
     }
 
-    // Return a placeholder image URL
-    // You can use a service like placeholder.com or generate a colored placeholder
-    const colors = ['3B82F6', '8B5CF6', '10B981', 'F59E0B', 'EC4899', 'F97316'];
-    const colorIndex = courseId ? courseId % colors.length : 0;
-    const color = colors[colorIndex];
-
-    const text = courseTitle ? encodeURIComponent(courseTitle.substring(0, 20)) : 'Course';
-    return `https://via.placeholder.com/400x300/${color}/FFFFFF?text=${text}`;
+    // Return null to let the component handle the placeholder
+    // This avoids network errors from trying to load external placeholder services
+    return null;
 };

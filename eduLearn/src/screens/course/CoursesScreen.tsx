@@ -125,15 +125,7 @@ const CoursesScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            {/* Header */}
-            <View style={styles.header}>
-                <ThemedText style={styles.headerTitle}>Explore Courses</ThemedText>
-                <TouchableOpacity style={styles.searchIconButton}>
-                    <Ionicons name="search-outline" size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-            </View>
-
-            {/* Sticky Search Bar */}
+            {/* Search Bar and Filters */}
             <View style={[styles.stickySection, { backgroundColor: theme.colors.background }]}>
                 <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
                     <Ionicons name="search-outline" size={20} color={theme.colors.textSecondary} />
@@ -236,21 +228,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-    },
-    searchIconButton: {
-        padding: 4,
-    },
     stickySection: {
+        paddingTop: 12,
         paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',

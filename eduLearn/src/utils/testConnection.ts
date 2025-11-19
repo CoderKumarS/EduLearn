@@ -31,13 +31,13 @@ export const testBackendConnection = async (): Promise<void> => {
     try {
         // Test 2: Check auth endpoint
         console.log('2. Testing auth endpoint...');
-        await axios.get(`${config.apiAuthUrl}/token/`);
+        await axios.get(`${config.apiAuthUrl}/login/`);
     } catch (error) {
         if (axios.isAxiosError(error)) {
             if (error.response?.status === 405) {
-                console.log('Auth endpoint exists (Method not allowed is expected for GET)');
+                console.log('✅ Auth endpoint exists (Method not allowed is expected for GET)');
             } else if (!error.response) {
-                console.log('Cannot reach auth endpoint');
+                console.log('❌ Cannot reach auth endpoint');
             } else {
                 console.log('Auth endpoint status:', error.response.status);
             }
