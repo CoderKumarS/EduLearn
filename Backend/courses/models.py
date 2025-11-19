@@ -45,6 +45,9 @@ class Course(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['-created_at', 'id']
+
     def __str__(self):
         return self.title
 
@@ -138,6 +141,9 @@ class Question(models.Model):
     explanation = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True, null=True)
 
+    class Meta:
+        ordering = ['order', 'id']
+
     def __str__(self):
         return self.question_text[:50]
 
@@ -147,6 +153,9 @@ class Option(models.Model):
     option_text = models.CharField(max_length=500, default='')
     is_correct = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'id']
 
     def __str__(self):
         return f"{self.option_text} ({'Correct' if self.is_correct else 'Wrong'})"
@@ -162,6 +171,7 @@ class Enrollment(models.Model):
 
     class Meta:
         unique_together = ('student', 'course')
+        ordering = ['-enrolled_at']
 
     def __str__(self):
         return f"{self.student} -> {self.course}"
@@ -177,6 +187,9 @@ class Progress(models.Model):
     time_spent_minutes = models.PositiveIntegerField(default=0)
     last_accessed = models.DateTimeField(auto_now=True)
     is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-last_accessed']
 
     def progress_percent(self):
         if self.total_lessons == 0:
@@ -199,6 +212,7 @@ class TopicProgress(models.Model):
         unique_together = ('student', 'topic')
         verbose_name = 'Topic Progress'
         verbose_name_plural = 'Topic Progress Records'
+        ordering = ['-last_accessed']
 
     def __str__(self):
         status = 'Completed' if self.is_completed else 'In Progress'
@@ -214,6 +228,9 @@ class StudentAnswer(models.Model):
     answered_at = models.DateTimeField(auto_now_add=True)
     time_taken_seconds = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        ordering = ['answered_at']
+
 
 class QuizAttempt(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='quiz_attempts')
@@ -226,6 +243,9 @@ class QuizAttempt(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
     attempt_number = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['-started_at']
 
 
 class Notification(models.Model):
@@ -243,6 +263,9 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     action_url = models.URLField(blank=True, null=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
 
 class Certificate(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='certificates')
@@ -251,6 +274,9 @@ class Certificate(models.Model):
     issued_at = models.DateTimeField(auto_now_add=True)
     is_valid = models.BooleanField(default=True)
     pdf_file = models.FileField(upload_to='certificates/', null=True, blank=True)
+
+    class Meta:
+        ordering = ['-issued_at']
 
 
 class Discussion(models.Model):
@@ -263,6 +289,9 @@ class Discussion(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_pinned = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['-is_pinned', '-created_at']
+
 
 class Reply(models.Model):
     discussion = models.ForeignKey(Discussion, on_delete=models.CASCADE, related_name='replies')
@@ -270,6 +299,10 @@ class Reply(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name_plural = 'Replies'
 
 
 class Rating(models.Model):
@@ -282,6 +315,7 @@ class Rating(models.Model):
 
     class Meta:
         unique_together = ('student', 'course')
+        ordering = ['-created_at']
 
 
 class Bookmark(models.Model):
@@ -292,3 +326,4 @@ class Bookmark(models.Model):
 
     class Meta:
         unique_together = ('student', 'course', 'chapter')
+        ordering = ['-created_at']
